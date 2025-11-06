@@ -1,0 +1,1712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCX to Obsidian Markdown Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        .sidebar {
+            background: #f8f9fa;
+            padding: 25px;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+            max-height: 800px;
+        }
+
+        .section {
+            background: white;
+            padding: 18px;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .section h3 {
+            font-size: 15px;
+            margin-bottom: 12px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 6px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .file-input-label:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .file-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e8f4f8;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #333;
+            word-break: break-all;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .input-group input[type="text"],
+        .input-group input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .input-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: monospace;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #5a6268;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress-section {
+            margin-top: 12px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            font-size: 11px;
+            color: #666;
+            text-align: center;
+        }
+
+        .content-area {
+            padding: 25px;
+            overflow-y: auto;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .preview-box {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            max-height: 600px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 18px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 968px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 DOCX to Obsidian Markdown Converter</h1>
+            <p>Convert Word documents to Obsidian-formatted Markdown with footnote processing</p>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="section">
+                    <h3>📁 File Selection</h3>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="docxInput" accept=".docx" multiple>
+                        <label for="docxInput" class="file-input-label">Choose DOCX File(s)</label>
+                    </div>
+                    <div id="fileInfo" class="file-info" style="display: none;"></div>
+                </div>
+
+                <div class="section">
+                    <h3>⚙️ Output Settings</h3>
+                    <div class="input-group">
+                        <label for="outputPrefix">Filename Prefix:</label>
+                        <input type="text" id="outputPrefix" value="DEEPSEARCH - ">
+                    </div>
+                    <div class="input-group">
+                        <label for="outputSuffix">Filename Suffix:</label>
+                        <input type="text" id="outputSuffix" value="">
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="useTitleAsFilename" checked>
+                        <label for="useTitleAsFilename">Use title as filename</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="extractMedia" checked>
+                        <label for="extractMedia">Extract media to folder</label>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>📝 Footnote Settings</h3>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="inlineFootnotes" checked>
+                        <label for="inlineFootnotes">Inline Footnotes ^[text]</label>
+                    </div>
+                    <div style="font-size: 11px; color: #666; margin-top: 8px; padding-left: 24px;">
+                        Unchecked = 2-part footnotes [^N] with definitions
+                    </div>
+                    <div class="input-group" style="margin-top: 12px;">
+                        <label for="footnoteMarker">Footnote Section Marker:</label>
+                        <input type="text" id="footnoteMarker" value="Works cited">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>🏷️ YAML Frontmatter</h3>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="addYaml" checked>
+                        <label for="addYaml">Add YAML frontmatter</label>
+                    </div>
+                    <div class="input-group" style="margin-top: 12px;">
+                        <label for="yamlContent">YAML Content:</label>
+                        <textarea id="yamlContent" rows="4">types:
+  - "[[TYPE - Deep Search]]"
+date: "{date}"
+title: "{title}"</textarea>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>🚀 Process</h3>
+                    <button id="convertBtn" class="btn btn-primary" disabled>Convert</button>
+                    
+                    <div class="progress-section">
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                        <div id="progressText" class="progress-text">Ready</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <div class="alert alert-info">
+                    <strong>ℹ️ Instructions:</strong>
+                    <ul style="margin: 10px 0 0 20px; padding: 0;">
+                        <li>Select one or more DOCX files</li>
+                        <li>Configure output and footnote settings</li>
+                        <li>Click Convert to process files</li>
+                        <li>Choose output folder (creates <code>[yymmddhhmm] - Docx To Obsidian Markdown - (filename)</code>)</li>
+                        <li>All files saved with media subfolder if enabled</li>
+                        <li>Placeholders: {date} = current date, {title} = document title</li>
+                    </ul>
+                </div>
+
+                <div id="statsSection" style="display: none;">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="statFiles">0</div>
+                            <div class="stat-label">Files Processed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statWords">0</div>
+                            <div class="stat-label">Total Words</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statImages">0</div>
+                            <div class="stat-label">Images Extracted</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statSize">0</div>
+                            <div class="stat-label">KB Total</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="previewSection">
+                    <h3 style="margin-bottom: 12px;">📖 Preview:</h3>
+                    <div class="preview-box" id="previewContent">No content yet. Select DOCX file(s) and click Convert.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --------------------ARGS
+        const ARGS = {
+            OUTPUT_DESCRIPTION: "Docx To Obsidian Markdown",
+            TIME_FORMAT: "[yymmddhhmm]",
+            FOOTNOTE_MARKER_DEFAULT: "Works cited",
+            OUTPUT_PREFIX_DEFAULT: "DEEPSEARCH - ",
+            OUTPUT_SUFFIX_DEFAULT: "",
+            EXTRACT_MEDIA_DEFAULT: true,
+            MEDIA_DIRNAME: "media",
+            USE_TITLE_AS_FILENAME_DEFAULT: true,
+            INLINE_FOOTNOTES_DEFAULT: true,
+            ADD_YAML_DEFAULT: true,
+            YAML_CONTENT_DEFAULT: 'types:\n  - "[[TYPE - Deep Search]]"\ndate: "{date}"\ntitle: "{title}"'
+        };
+
+        // --------------------CONSTANTS & CONFIGURATIONS
+        const FOOTNOTE_REF_RE = /\[\^(\d+)\]/g;
+        const FOOTNOTE_DEF_RE = /^(?:\[\^([^\]]+)\]:\s*(.+))$/gm;
+
+        // --------------------GLOBAL STATE
+        let selectedFiles = [];
+        let processedData = [];
+        let lastFolderHandle = null;
+
+        // --------------------UTILITY FUNCTIONS
+
+        function getTimestamp() {
+            const now = new Date();
+            const yy = String(now.getFullYear()).slice(-2);
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const hh = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            return `[${yy}${mm}${dd}${hh}${min}]`;
+        }
+
+        function getCurrentDate() {
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function updateProgress(percent, text) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            if (text) {
+                document.getElementById('progressText').textContent = text;
+            }
+        }
+
+        function sanitizeFilename(text, maxLength = 200) {
+            if (!text) return "untitled";
+            
+            // Remove forbidden characters for filenames (Windows: < > : " | ? * \ /)
+            // But preserve periods (.) for file extensions
+            let safe = text.replace(/[<>:"|?*\\/]/g, '').replace(/\s+/g, ' ').trim();
+            
+            // Remove leading/trailing periods and spaces (Windows doesn't allow these)
+            safe = safe.replace(/^[.\s]+|[.\s]+$/g, '');
+            
+            // Smart truncation: if we need to truncate, try to cut at word boundaries
+            if (safe.length > maxLength) {
+                // Try to find a good word boundary near the limit
+                const truncated = safe.substring(0, maxLength);
+                const lastSpace = truncated.lastIndexOf(' ');
+                
+                // If we have a space in the last 20 characters, cut there (preserve more context)
+                if (lastSpace > maxLength - 20) {
+                    safe = truncated.substring(0, lastSpace).trim();
+                } else {
+                    // Otherwise, just cut at the limit
+                    safe = truncated.trim();
+                }
+                
+                // Remove trailing punctuation that might look odd
+                safe = safe.replace(/[,;:]+$/, '');
+            }
+            
+            // Final safety check - ensure we have something valid
+            if (!safe || safe.length === 0) {
+                safe = "untitled";
+            }
+            
+            return safe;
+        }
+
+        function toTitleCase(text, maxLength = 100) {
+            if (!text) return "untitled";
+            
+            // Remove forbidden characters
+            let safe = text.replace(/[<>:"|?*\\/]/g, '').replace(/\s+/g, ' ').trim();
+            
+            // Minor words that shouldn't be capitalized (except first/last)
+            const minor = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'if', 'in', 'of', 'on', 'or', 'the', 'to', 'up']);
+            
+            const words = safe.split(' ');
+            if (!words.length) return "untitled";
+            
+            const titleWords = words.map((word, i) => {
+                if (i === 0 || i === words.length - 1) {
+                    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+                } else if (minor.has(word.toLowerCase())) {
+                    return word.toLowerCase();
+                } else {
+                    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+                }
+            });
+            
+            safe = titleWords.join(' ');
+            if (safe.length > maxLength) {
+                safe = safe.substring(0, maxLength).trim();
+            }
+            
+            return safe || "untitled";
+        }
+
+        function cleanObsidianMarkdown(text) {
+            // Remove unnecessary escaping
+            text = text.replace(/\\"/g, '"');
+            text = text.replace(/\\'/g, "'");
+            text = text.replace(/\\\./g, '.');
+            text = text.replace(/\\,/g, ',');
+            text = text.replace(/\\;/g, ';');
+            text = text.replace(/\\:/g, ':');
+            text = text.replace(/\\!/g, '!');
+            text = text.replace(/\\\?/g, '?');
+            text = text.replace(/\\\[/g, '[');
+            text = text.replace(/\\\]/g, ']');
+            text = text.replace(/\\\*/g, '*');
+            text = text.replace(/\\_/g, '_');
+            text = text.replace(/\\`/g, '`');
+            
+            // Fix footnote format from ^1^ to [^1]
+            text = text.replace(/\^(\d+)\^/g, '[^$1]');
+            
+            // Remove heading IDs
+            text = text.replace(/\s*\{#[^}]+\}\s*$/gm, '');
+            
+            // Replace various dashes with spaced hyphen
+            text = text.replace(/—/g, ' - ');
+            text = text.replace(/–/g, ' - ');
+            text = text.replace(/‒/g, ' - ');
+            text = text.replace(/―/g, ' - ');
+            
+            // Replace 3+ consecutive dashes with spaced hyphen ONLY if NOT in a table separator
+            // Table separators have format: | ---+ | ---+ |
+            // Process line by line to avoid breaking table separators
+            text = text.split('\n').map(line => {
+                // If line looks like a table separator (starts with |, contains dashes and |), skip it
+                if (/^\|\s*-+\s*\|/.test(line)) {
+                    return line; // Keep table separator unchanged
+                }
+                // Otherwise, replace 3+ consecutive dashes
+                return line.replace(/---+/g, ' - ');
+            }).join('\n');
+            
+            return text;
+        }
+
+        function processFootnotesInline(mdText, marker) {
+            // Find marker section
+            const markerRe = new RegExp(`^.*${marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*$`, 'mi');
+            const match = mdText.match(markerRe);
+            
+            if (!match) return mdText;
+            
+            const markerIdx = match.index;
+            const beforeMarker = mdText.substring(0, markerIdx);
+            const afterMarker = mdText.substring(markerIdx);
+            
+            // Find all footnote references
+            const refs = new Set();
+            const bracketRefs = beforeMarker.match(/\[\^(\d+)\]/g);
+            if (bracketRefs) {
+                bracketRefs.forEach(ref => refs.add(ref.match(/\d+/)[0]));
+            }
+            
+            if (refs.size === 0) return mdText;
+            
+            // Build footnote content map
+            const contentMap = {};
+            const lines = afterMarker.split('\n');
+            let i = 0;
+            
+            while (i < lines.length) {
+                const line = lines[i].trim();
+                const numMatch = line.match(/^(\d+)\.\s*(.+)$/);
+                
+                if (numMatch) {
+                    const num = numMatch[1];
+                    const content = numMatch[2].trim();
+                    
+                    if (refs.has(num)) {
+                        const contentLines = [content];
+                        let j = i + 1;
+                        
+                        while (j < lines.length) {
+                            const nextLine = lines[j].trim();
+                            if (/^\d+\./.test(nextLine) || !nextLine) break;
+                            contentLines.push(nextLine);
+                            j++;
+                        }
+                        
+                        contentMap[num] = contentLines.join('<br>');
+                        i = j;
+                    } else {
+                        i++;
+                    }
+                } else {
+                    i++;
+                }
+            }
+            
+            // Replace references with inline footnotes
+            let result = beforeMarker;
+            refs.forEach(num => {
+                if (contentMap[num]) {
+                    const re = new RegExp(`\\[\\^${num}\\]`, 'g');
+                    result = result.replace(re, `^[${contentMap[num]}]`);
+                }
+            });
+            
+            // Remove marker section
+            const markerStart = result.indexOf(marker);
+            if (markerStart !== -1) {
+                result = result.substring(0, markerStart).trim();
+            }
+            
+            return result;
+        }
+
+        function processFootnotesNumbered(mdText, marker) {
+            // Find marker section
+            const markerRe = new RegExp(`^.*${marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*$`, 'mi');
+            const match = mdText.match(markerRe);
+            
+            if (!match) return mdText;
+            
+            const markerIdx = match.index;
+            const beforeMarker = mdText.substring(0, markerIdx);
+            const afterMarker = mdText.substring(markerIdx);
+            
+            // Find all footnote references
+            const refs = new Set();
+            const bracketRefs = beforeMarker.match(/\[\^(\d+)\]/g);
+            if (bracketRefs) {
+                bracketRefs.forEach(ref => refs.add(ref.match(/\d+/)[0]));
+            }
+            
+            if (refs.size === 0) return mdText;
+            
+            // Process after-marker section
+            const lines = afterMarker.split('\n');
+            const processedLines = [];
+            let i = 0;
+            
+            while (i < lines.length) {
+                const line = lines[i].trim();
+                const numMatch = line.match(/^(\d+)\.\s*(.+)$/);
+                
+                if (numMatch) {
+                    const num = numMatch[1];
+                    const content = numMatch[2].trim();
+                    
+                    if (refs.has(num)) {
+                        const defLines = [`[^${num}]: ${content}`];
+                        let j = i + 1;
+                        
+                        while (j < lines.length) {
+                            const nextLine = lines[j].trim();
+                            if (/^\d+\./.test(nextLine) || !nextLine) break;
+                            defLines.push(`  ${nextLine}`);
+                            j++;
+                        }
+                        
+                        processedLines.push(...defLines);
+                        i = j;
+                    } else {
+                        processedLines.push(line);
+                        i++;
+                    }
+                } else {
+                    processedLines.push(line);
+                    i++;
+                }
+            }
+            
+            return beforeMarker + '\n' + processedLines.join('\n');
+        }
+
+        function convertInlineFootnotesToNumbered(mdText) {
+            const nums = [...mdText.matchAll(/\[\^(\d+)\]/g)].map(m => parseInt(m[1]));
+            let nextNum = nums.length ? Math.max(...nums) + 1 : 1;
+            
+            const result = [];
+            const definitions = [];
+            let i = 0;
+            
+            while (i < mdText.length) {
+                if (mdText[i] === '^' && mdText[i + 1] === '[') {
+                    let j = i + 2;
+                    let depth = 1;
+                    const buf = [];
+                    
+                    while (j < mdText.length) {
+                        const ch = mdText[j];
+                        if (ch === '[') {
+                            depth++;
+                            buf.push(ch);
+                        } else if (ch === ']') {
+                            depth--;
+                            if (depth === 0) break;
+                            buf.push(ch);
+                        } else {
+                            buf.push(ch);
+                        }
+                        j++;
+                    }
+                    
+                    if (depth === 0) {
+                        const content = buf.join('').trim();
+                        result.push(`[^${nextNum}]`);
+                        definitions.push({ num: nextNum, content });
+                        i = j + 1;
+                        nextNum++;
+                        continue;
+                    }
+                }
+                result.push(mdText[i]);
+                i++;
+            }
+            
+            let newText = result.join('');
+            if (definitions.length) {
+                if (!newText.endsWith('\n')) newText += '\n';
+                newText += '\n';
+                definitions.forEach(({ num, content }) => {
+                    newText += `[^${num}]: ${content}\n`;
+                });
+            }
+            
+            return newText;
+        }
+
+        // --------------------FILE PROCESSING
+
+        async function convertDocxToMarkdown(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            
+            // Convert DOCX to HTML using Mammoth
+            const result = await mammoth.convertToHtml({ arrayBuffer });
+            const html = result.value;
+            const messages = result.messages;
+            
+            // Extract images
+            const imageResult = await mammoth.extractRawText({ arrayBuffer });
+            const images = [];
+            
+            // Try to extract images using Mammoth's raw API
+            try {
+                const imgResult = await mammoth.images.imgElement(async (img) => {
+                    const buffer = await img.read();
+                    const blob = new Blob([buffer], { type: img.contentType });
+                    images.push({
+                        blob,
+                        contentType: img.contentType,
+                        extension: img.contentType.split('/')[1] || 'png'
+                    });
+                    return { src: `media/image${images.length}.${img.contentType.split('/')[1] || 'png'}` };
+                });
+            } catch (e) {
+                // Images extraction may fail, continue without them
+            }
+            
+            // Convert HTML to Markdown
+            let markdown = htmlToMarkdown(html);
+            
+            return { markdown, images, messages };
+        }
+
+        function htmlToMarkdown(html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const body = doc.body;
+            
+            return processNode(body);
+        }
+
+        function processNode(node) {
+            if (!node) return '';
+            
+            if (node.nodeType === Node.TEXT_NODE) {
+                return node.textContent;
+            }
+            
+            if (node.nodeType !== Node.ELEMENT_NODE) return '';
+            
+            const tag = node.tagName.toLowerCase();
+            let result = '';
+            
+            switch (tag) {
+                case 'h1':
+                    result = '# ' + getTextContent(node) + '\n\n';
+                    break;
+                case 'h2':
+                    result = '## ' + getTextContent(node) + '\n\n';
+                    break;
+                case 'h3':
+                    result = '### ' + getTextContent(node) + '\n\n';
+                    break;
+                case 'h4':
+                    result = '#### ' + getTextContent(node) + '\n\n';
+                    break;
+                case 'h5':
+                    result = '##### ' + getTextContent(node) + '\n\n';
+                    break;
+                case 'h6':
+                    result = '###### ' + getTextContent(node) + '\n\n';
+                    break;
+                case 'p':
+                    const pText = processChildren(node);
+                    if (pText.trim()) {
+                        result = pText.trim() + '\n\n';
+                    }
+                    break;
+                case 'strong':
+                case 'b':
+                    result = '**' + getTextContent(node) + '**';
+                    break;
+                case 'em':
+                case 'i':
+                    result = '*' + getTextContent(node) + '*';
+                    break;
+                case 'u':
+                    result = getTextContent(node); // Underline not supported in markdown
+                    break;
+                case 'a':
+                    const href = node.getAttribute('href');
+                    const text = getTextContent(node);
+                    result = href ? `[${text}](${href})` : text;
+                    break;
+                case 'ul':
+                    Array.from(node.children).forEach(li => {
+                        if (li.tagName.toLowerCase() === 'li') {
+                            result += '- ' + processNode(li).trim() + '\n';
+                        }
+                    });
+                    result += '\n';
+                    break;
+                case 'ol':
+                    Array.from(node.children).forEach((li, idx) => {
+                        if (li.tagName.toLowerCase() === 'li') {
+                            result += `${idx + 1}. ` + processNode(li).trim() + '\n';
+                        }
+                    });
+                    result += '\n';
+                    break;
+                case 'li':
+                    result = processChildren(node);
+                    break;
+                case 'br':
+                    result = '  \n';
+                    break;
+                case 'hr':
+                    result = '\n---\n\n';
+                    break;
+                case 'blockquote':
+                    const lines = getTextContent(node).split('\n');
+                    result = lines.map(line => '> ' + line).join('\n') + '\n\n';
+                    break;
+                case 'code':
+                    result = '`' + getTextContent(node) + '`';
+                    break;
+                case 'pre':
+                    result = '\n```\n' + getTextContent(node) + '\n```\n\n';
+                    break;
+                case 'img':
+                    const src = node.getAttribute('src');
+                    const alt = node.getAttribute('alt') || 'image';
+                    result = `![${alt}](${src})\n\n`;
+                    break;
+                case 'sup':
+                    // Superscript might be footnote reference
+                    const supText = getTextContent(node).trim();
+                    if (/^\d+$/.test(supText)) {
+                        result = `[^${supText}]`;
+                    } else {
+                        result = `^${supText}^`;
+                    }
+                    break;
+                case 'table':
+                    // Convert table to markdown
+                    result = '\n' + convertTableToMarkdown(node) + '\n\n';
+                    break;
+                case 'tbody':
+                case 'thead':
+                case 'tfoot':
+                case 'tr':
+                case 'td':
+                case 'th':
+                    // These are handled within table conversion, don't process separately
+                    result = '';
+                    break;
+                default:
+                    result = processChildren(node);
+            }
+            
+            return result;
+        }
+
+        function convertTableToMarkdown(tableNode) {
+            // Get ALL rows from the table (including those in thead, tbody, and tfoot)
+            const allTableRows = Array.from(tableNode.querySelectorAll('tr'));
+            
+            if (allTableRows.length === 0) {
+                console.warn('Table has no rows');
+                return '';
+            }
+            
+            // First pass: collect all rows and find header
+            let headerRowIndex = -1;
+            const allRowData = [];
+            
+            // Find header row (row with <th> elements or first row)
+            for (let i = 0; i < allTableRows.length; i++) {
+                const tr = allTableRows[i];
+                const thElements = tr.querySelectorAll('th');
+                
+                if (thElements.length > 0 && headerRowIndex === -1) {
+                    headerRowIndex = i;
+                }
+            }
+            
+            // If no <th> found, treat first row as header
+            if (headerRowIndex === -1 && allTableRows.length > 0) {
+                headerRowIndex = 0;
+            }
+            
+            // Collect all rows data
+            for (let i = 0; i < allTableRows.length; i++) {
+                const tr = allTableRows[i];
+                const cells = Array.from(tr.querySelectorAll('td, th')).map(cell => {
+                    return getCellText(cell).replace(/\|/g, '\\|').replace(/\n/g, ' ');
+                });
+                
+                if (cells.length > 0) {
+                    allRowData.push(cells);
+                }
+            }
+            
+            if (allRowData.length === 0) {
+                return '';
+            }
+            
+            // Find max columns across all rows
+            const maxCols = Math.max(...allRowData.map(row => row.length));
+            
+            // Normalize all rows to have the same number of columns
+            allRowData.forEach(row => {
+                while (row.length < maxCols) {
+                    row.push('');
+                }
+                if (row.length > maxCols) {
+                    row.length = maxCols;
+                }
+            });
+            
+            // Calculate max width for each column
+            const columnWidths = Array(maxCols).fill(0);
+            
+            allRowData.forEach(row => {
+                row.forEach((cell, colIndex) => {
+                    // Calculate visual width (account for markdown formatting)
+                    const visualWidth = getVisualWidth(cell);
+                    columnWidths[colIndex] = Math.max(columnWidths[colIndex], visualWidth);
+                });
+            });
+            
+            // Debug: log column widths
+            console.log('Column widths:', columnWidths);
+            
+            // Pad cells to match column widths
+            const paddedRows = allRowData.map(row => {
+                return row.map((cell, colIndex) => {
+                    return padCell(cell, columnWidths[colIndex]);
+                });
+            });
+            
+            // Build markdown table
+            const rows = [];
+            
+            // Header row
+            if (headerRowIndex >= 0 && headerRowIndex < paddedRows.length) {
+                const headerRow = paddedRows[headerRowIndex];
+                rows.push('| ' + headerRow.join(' | ') + ' |');
+                
+                // Separator row with dashes matching column widths
+                // Create separator cells that match the exact column width
+                const separatorCells = columnWidths.map(width => {
+                    // Create dashes matching the column width (at least 3 dashes)
+                    const dashCount = Math.max(3, width);
+                    const separator = '-'.repeat(dashCount);
+                    // Ensure separator is padded to exact width (matching other cells)
+                    const visualWidth = getVisualWidth(separator);
+                    if (visualWidth < width) {
+                        return separator + ' '.repeat(width - visualWidth);
+                    }
+                    return separator;
+                });
+                console.log('Separator cells:', separatorCells.map((s, i) => `col${i}: ${s.length} chars, width: ${columnWidths[i]}`));
+                rows.push('| ' + separatorCells.join(' | ') + ' |');
+            }
+            
+            // Data rows (skip header if it exists)
+            for (let i = 0; i < paddedRows.length; i++) {
+                if (i !== headerRowIndex) {
+                    rows.push('| ' + paddedRows[i].join(' | ') + ' |');
+                }
+            }
+            
+            console.log(`Table conversion: ${headerRowIndex >= 0 ? 1 : 0} header row, ${paddedRows.length - (headerRowIndex >= 0 ? 1 : 0)} data rows, ${maxCols} columns`);
+            
+            return rows.length > 0 ? rows.join('\n') : '';
+        }
+        
+        function getVisualWidth(text) {
+            // Calculate visual width, accounting for markdown formatting
+            // Remove markdown syntax but count the visible characters
+            let visible = text
+                .replace(/\*\*([^*]+)\*\*/g, '$1')  // **bold** → text
+                .replace(/\*([^*]+)\*/g, '$1')       // *italic* → text
+                .replace(/`([^`]+)`/g, '$1')          // `code` → text
+                .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // [link](url) → link text
+                .replace(/\[\[\^(\d+)\]\]/g, '')       // [^1] → empty
+                .replace(/\^\[([^\]]+)\]/g, '')       // ^[text] → empty
+                .replace(/~([^~]+)~/g, '$1')          // ~sub~ → text
+                .replace(/\^([^\^]+)\^/g, '$1');      // ^sup^ → text
+            
+            return visible.length;
+        }
+        
+        function padCell(text, width) {
+            // Calculate current visual width
+            const currentWidth = getVisualWidth(text);
+            
+            if (currentWidth >= width) {
+                return text; // Already wide enough
+            }
+            
+            // Pad with spaces to match width
+            const padding = width - currentWidth;
+            return text + ' '.repeat(padding);
+        }
+        
+        function createSeparatorCell(width) {
+            // Create a separator cell with dashes matching the column width
+            // Use at least 3 dashes, but match the column width
+            const dashCount = Math.max(3, width);
+            return '-'.repeat(dashCount);
+        }
+
+        function getCellText(cellNode) {
+            // Extract text from cell, preserving inline formatting
+            let text = '';
+            
+            Array.from(cellNode.childNodes).forEach(child => {
+                if (child.nodeType === Node.TEXT_NODE) {
+                    text += child.textContent;
+                } else if (child.nodeType === Node.ELEMENT_NODE) {
+                    const tag = child.tagName.toLowerCase();
+                    const childText = getCellText(child);
+                    
+                    switch (tag) {
+                        case 'strong':
+                        case 'b':
+                            text += `**${childText}**`;
+                            break;
+                        case 'em':
+                        case 'i':
+                            text += `*${childText}*`;
+                            break;
+                        case 'code':
+                            text += `\`${childText}\``;
+                            break;
+                        case 'a':
+                            const href = child.getAttribute('href');
+                            text += href ? `[${childText}](${href})` : childText;
+                            break;
+                        case 'br':
+                            text += ' ';
+                            break;
+                        case 'sup':
+                            const supText = childText.trim();
+                            if (/^\d+$/.test(supText)) {
+                                text += `[^${supText}]`;
+                            } else {
+                                text += `^${supText}^`;
+                            }
+                            break;
+                        case 'sub':
+                            text += `~${childText}~`;
+                            break;
+                        default:
+                            text += childText;
+                    }
+                }
+            });
+            
+            return text.trim();
+        }
+
+        function processChildren(node) {
+            let result = '';
+            Array.from(node.childNodes).forEach(child => {
+                result += processNode(child);
+            });
+            return result;
+        }
+
+        function getTextContent(node) {
+            return processChildren(node).trim();
+        }
+
+        // --------------------FILE SYSTEM ACCESS
+
+        async function ensureFolderAccess(folderHandle, folderName, retries = 3) {
+            // Helper function to ensure folder is accessible, re-acquiring if needed
+            for (let i = 0; i < retries; i++) {
+                try {
+                    console.log(`[ensureFolderAccess] Attempt ${i + 1}: Getting directory handle for "${folderName}"`);
+                    
+                    // Verify parent folder is accessible
+                    if (!folderHandle || folderHandle.kind !== 'directory') {
+                        throw new Error('Parent folder handle is invalid');
+                    }
+                    
+                    // Try to get the directory handle
+                    let folder = await folderHandle.getDirectoryHandle(folderName);
+                    
+                    if (!folder || folder.kind !== 'directory') {
+                        throw new Error('Retrieved handle is not a directory');
+                    }
+                    
+                    // Verify folder is actually accessible by trying to list its contents
+                    const keysIterator = folder.keys();
+                    await keysIterator.next();
+                    
+                    console.log(`[ensureFolderAccess] ✓ Successfully accessed folder`);
+                    return folder;
+                } catch (e) {
+                    console.warn(`[ensureFolderAccess] Attempt ${i + 1} failed:`, e.message);
+                    if (i === retries - 1) {
+                        throw new Error(`Cannot access folder "${folderName}" after ${retries} attempts: ${e.message}`);
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 200 * (i + 1)));
+                }
+            }
+        }
+
+        async function getOrCreateOutputFolder(folderHandle, timestamp) {
+            // Create folder name without input suffix: [timestamp] - Description
+            // Windows MAX_PATH is 260 chars total for the ENTIRE path
+            // We need to be MUCH more conservative with lengths
+            const maxFolderLength = 60;
+            const timestampLength = 13; // [2511061352]
+            const separatorLength = 3; // " - "
+            const fixedLength = timestampLength + separatorLength; // 16 chars
+            const availableLength = maxFolderLength - fixedLength; // ~44 chars
+            
+            // Limit description to available space
+            const descPart = sanitizeFilename(ARGS.OUTPUT_DESCRIPTION, availableLength);
+            
+            const folderName = `${timestamp} - ${descPart}`;
+            
+            console.log(`Folder name: "${folderName}" (${folderName.length} chars)`);
+            
+            // Request permission if method exists
+            try {
+                if (folderHandle.requestPermission) {
+                    const permission = await folderHandle.requestPermission({ mode: 'readwrite' });
+                    if (permission !== 'granted') {
+                        throw new Error('Permission denied for folder access');
+                    }
+                }
+            } catch (e) {
+                console.warn('Permission request failed:', e);
+            }
+            
+            // Create or access output folder with retry logic
+            let outputFolder;
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            while (retryCount < maxRetries) {
+                try {
+                    console.log(`[Folder Creation] Attempt ${retryCount + 1}: Creating/accessing "${folderName}"`);
+                    
+                    // Try to create the folder
+                    outputFolder = await folderHandle.getDirectoryHandle(folderName, { create: true });
+                    console.log(`[Folder Creation] ✓ getDirectoryHandle succeeded`);
+                    
+                    // Verify we can access the folder
+                    if (outputFolder.kind !== 'directory') {
+                        throw new Error(`Created item is not a directory: ${folderName}`);
+                    }
+                    console.log(`[Folder Creation] ✓ Verified kind is 'directory'`);
+                    
+                    // Verify folder is accessible by trying to list it (quick check)
+                    const keysIterator = outputFolder.keys();
+                    await keysIterator.next();
+                    console.log(`[Folder Creation] ✓ Folder is accessible (keys() succeeded)`);
+                    
+                    break; // Success, exit retry loop
+                } catch (e) {
+                    retryCount++;
+                    console.warn(`[Folder Creation] Attempt ${retryCount} failed:`, e.message);
+                    
+                    if (retryCount >= maxRetries) {
+                        // Last attempt: try to open existing folder
+                        try {
+                            console.log(`[Folder Creation] Final attempt: trying to access existing folder`);
+                            outputFolder = await folderHandle.getDirectoryHandle(folderName);
+                            if (outputFolder.kind !== 'directory') {
+                                throw new Error(`Existing item is not a directory: ${folderName}`);
+                            }
+                            console.log(`[Folder Creation] ✓ Accessed existing folder`);
+                            break;
+                        } catch (e2) {
+                            console.error(`[Folder Creation] All attempts failed:`, e2.message);
+                            throw new Error(`Cannot create or access folder "${folderName}" after ${maxRetries} attempts: ${e2.message || e.message}`);
+                        }
+                    } else {
+                        // Wait a bit before retry
+                        const waitTime = 100 * retryCount;
+                        console.log(`[Folder Creation] Waiting ${waitTime}ms before retry...`);
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                    }
+                }
+            }
+            
+            // Double-check folder is accessible right before use
+            if (!outputFolder || outputFolder.kind !== 'directory') {
+                throw new Error('Output folder is not accessible after creation');
+            }
+            
+            console.log(`[Folder Creation] ✓✓✓ Folder ready: "${folderName}"`);
+            return outputFolder;
+        }
+
+        async function saveFilesToFolder(outputFolder, outputData, skipSummary = false) {
+            const { filename, markdown, images, summary } = outputData;
+            
+            try {
+                // Verify output folder handle is still valid
+                if (!outputFolder || outputFolder.kind !== 'directory') {
+                    throw new Error('Output folder handle is invalid');
+                }
+                
+                updateProgress(70, 'Saving markdown file...');
+                
+                // Calculate filename length limits accounting for TOTAL PATH LENGTH
+                // Windows MAX_PATH = 260 chars for entire path (C:\folder\subfolder\file.md)
+                // We need to be VERY conservative
+                // Assume base path could be up to 100 chars (e.g., C:\Users\Administrator\Downloads\...)
+                // Our folder: ~60 chars
+                // Leaves ~100 chars for filename
+                
+                // NO TIMESTAMP prefix - just the filename
+                const extensionLength = 3; // ".md"
+                
+                // Limit filename to 100 chars total (content + extension)
+                // This gives us: ~97 (content) + 3 (extension) = 100 chars
+                const maxTotalFilenameLength = 100;
+                const maxContentLength = maxTotalFilenameLength - extensionLength; // ~97 chars
+                
+                // Sanitize and truncate filename intelligently
+                let sanitizedFilename = sanitizeFilename(filename, maxContentLength);
+                
+                // Verify length and truncate if needed
+                let finalMdFilename = `${sanitizedFilename}.md`;
+                if (finalMdFilename.length > maxTotalFilenameLength) {
+                    // Emergency truncation
+                    const excess = finalMdFilename.length - maxTotalFilenameLength + 3; // +3 for "..."
+                    sanitizedFilename = sanitizedFilename.substring(0, sanitizedFilename.length - excess) + '...';
+                    finalMdFilename = `${sanitizedFilename}.md`;
+                    console.warn(`Filename truncated to ${finalMdFilename.length} chars`);
+                }
+                
+                // Final validation checks
+                if (finalMdFilename.length > 255) {
+                    throw new Error(`Filename too long: ${finalMdFilename.length} chars (max 255). Filename: ${finalMdFilename.substring(0, 100)}...`);
+                }
+                
+                if (/[<>:"|?*\x00-\x1f]/.test(finalMdFilename)) {
+                    throw new Error(`Filename contains invalid characters: ${finalMdFilename}`);
+                }
+                
+                if (finalMdFilename.length === 0) {
+                    throw new Error('Filename is empty after sanitization');
+                }
+                
+                console.log(`Final filename: "${finalMdFilename}" (${finalMdFilename.length} chars)`);
+                
+                // Save markdown file with retry logic
+                let saveAttempts = 0;
+                const maxSaveRetries = 3;
+                
+                while (saveAttempts < maxSaveRetries) {
+                    try {
+                        // Verify folder is still accessible
+                        console.log(`[Save MD] Verifying folder access (attempt ${saveAttempts + 1})...`);
+                        if (!outputFolder || outputFolder.kind !== 'directory') {
+                            throw new Error('Output folder handle is invalid');
+                        }
+                        // Quick check that folder is accessible
+                        await outputFolder.keys().next();
+                        console.log(`[Save MD] ✓ Folder is accessible`);
+                        
+                        console.log(`[Save MD] Creating file handle for: ${finalMdFilename} (${finalMdFilename.length} chars)`);
+                        
+                        // Create file handle
+                        const mdFile = await outputFolder.getFileHandle(finalMdFilename, { create: true });
+                        console.log(`[Save MD] ✓ File handle created`);
+                        
+                        // Create writable stream
+                        console.log(`[Save MD] Creating writable stream...`);
+                        const mdWritable = await mdFile.createWritable();
+                        console.log(`[Save MD] ✓ Writable stream created`);
+                        
+                        // Write with BOM for UTF-8 encoding
+                        const content = '\ufeff' + markdown;
+                        console.log(`[Save MD] Writing content (${content.length} bytes)...`);
+                        await mdWritable.write(content);
+                        console.log(`[Save MD] ✓ Content written`);
+                        
+                        // Close writable stream
+                        console.log(`[Save MD] Closing writable stream...`);
+                        await mdWritable.close();
+                        console.log(`[Save MD] ✓ Stream closed`);
+                        
+                        console.log(`✓✓✓ Successfully saved: ${finalMdFilename}`);
+                        break; // Success, exit retry loop
+                    } catch (e) {
+                        saveAttempts++;
+                        console.error(`[Save MD] Attempt ${saveAttempts} failed at:`, e.message);
+                        console.error(`[Save MD] Error stack:`, e.stack);
+                        
+                        if (saveAttempts >= maxSaveRetries) {
+                            console.error(`[Save MD] All attempts exhausted after ${maxSaveRetries} tries`);
+                            throw new Error(`Failed to save markdown file "${finalMdFilename}": ${e.message}`);
+                        }
+                        
+                        // Wait before retry (exponential backoff)
+                        console.log(`[Save MD] Waiting ${300 * saveAttempts}ms before retry...`);
+                        await new Promise(resolve => setTimeout(resolve, 300 * saveAttempts));
+                    }
+                }
+                
+                // Save images if any
+                if (images && images.length > 0) {
+                    updateProgress(80, `Saving ${images.length} images...`);
+                    
+                    try {
+                        // Verify folder is still accessible
+                        if (!outputFolder || outputFolder.kind !== 'directory') {
+                            throw new Error('Output folder handle is invalid for media');
+                        }
+                        
+                        const mediaFolder = await outputFolder.getDirectoryHandle(ARGS.MEDIA_DIRNAME, { create: true });
+                        console.log(`[Media] Created/accessed media folder: ${ARGS.MEDIA_DIRNAME}`);
+                        
+                        for (let i = 0; i < images.length; i++) {
+                            const img = images[i];
+                            const imgFilename = sanitizeFilename(`image${i + 1}.${img.extension}`);
+                            try {
+                                const imgFile = await mediaFolder.getFileHandle(imgFilename, { create: true });
+                                const imgWritable = await imgFile.createWritable();
+                                await imgWritable.write(img.blob);
+                                await imgWritable.close();
+                                console.log(`[Media] ✓ Saved: ${imgFilename}`);
+                            } catch (e) {
+                                console.warn(`[Media] Failed to save image ${imgFilename}:`, e);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn(`[Media] Failed to create/save media folder: ${e.message}`);
+                    }
+                }
+                
+                // Summary is saved at end of batch (not per file)
+                // This section is kept for backward compatibility but skipSummary should always be true
+                if (!skipSummary) {
+                    console.warn('Individual summary save requested - this should not happen in batch mode');
+                }
+                
+                updateProgress(100, 'Complete!');
+                
+                return true;
+            } catch (error) {
+                throw new Error(`Failed to save files: ${error.message}`);
+            }
+        }
+
+        async function downloadFilesIndividually(outputData) {
+            const { timestamp, filename, markdown, images, summary } = outputData;
+            const folderName = `${timestamp} - ${ARGS.OUTPUT_DESCRIPTION} - (${filename})`;
+            
+            alert(`File System Access API not available. Please save each file manually.\n\nFolder name: ${folderName}\n\nFiles:\n- ${timestamp} - ${filename}.md\n- ${images.length} images (if enabled)\n- ${timestamp} - summary.json`);
+            
+            // Download markdown
+            const mdFilename = `${timestamp} - ${filename}.md`;
+            const mdBlob = new Blob(['\ufeff' + markdown], { type: 'text/markdown;charset=utf-8' });
+            saveAs(mdBlob, mdFilename);
+            
+            // Download images
+            if (images && images.length > 0) {
+                for (let i = 0; i < images.length; i++) {
+                    const img = images[i];
+                    saveAs(img.blob, `image${i + 1}.${img.extension}`);
+                }
+            }
+            
+            // Download summary
+            const summaryFilename = `${timestamp} - summary.json`;
+            const summaryBlob = new Blob([JSON.stringify(summary, null, 2)], { type: 'application/json' });
+            saveAs(summaryBlob, summaryFilename);
+            
+            return true;
+        }
+
+        // --------------------MAIN PROCESSING
+
+        async function processFiles() {
+            if (!selectedFiles.length) return;
+            
+            updateProgress(0, 'Starting...');
+            document.getElementById('convertBtn').disabled = true;
+            
+            try {
+                // Request output folder
+                let folderHandle = null;
+                if ('showDirectoryPicker' in window) {
+                    try {
+                        folderHandle = await window.showDirectoryPicker();
+                        lastFolderHandle = folderHandle;
+                    } catch (e) {
+                        if (e.name === 'AbortError') {
+                            updateProgress(0, 'Cancelled');
+                            document.getElementById('convertBtn').disabled = false;
+                            return;
+                        }
+                    }
+                }
+                
+                processedData = [];
+                let totalWords = 0;
+                let totalImages = 0;
+                let totalSize = 0;
+                
+                // Create output folder once for all files (if using File System Access API)
+                let outputFolder = null;
+                let runTimestamp = null;
+                if (folderHandle) {
+                    runTimestamp = getTimestamp();
+                    updateProgress(50, 'Creating output folder...');
+                    outputFolder = await getOrCreateOutputFolder(folderHandle, runTimestamp);
+                }
+                
+                // Accumulate all summaries for batch summary
+                const allSummaries = [];
+                
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const file = selectedFiles[i];
+                    const progress = 50 + (i / selectedFiles.length) * 40;
+                    updateProgress(progress, `Processing ${file.name} (${i + 1}/${selectedFiles.length})...`);
+                    
+                    // Convert DOCX
+                    const { markdown: rawMd, images, messages } = await convertDocxToMarkdown(file);
+                    
+                    // Clean markdown
+                    let markdown = cleanObsidianMarkdown(rawMd);
+                    
+                    // Process footnotes
+                    const inlineFootnotes = document.getElementById('inlineFootnotes').checked;
+                    const footnoteMarker = document.getElementById('footnoteMarker').value.trim();
+                    
+                    if (inlineFootnotes) {
+                        markdown = convertInlineFootnotesToNumbered(markdown);
+                        markdown = processFootnotesInline(markdown, footnoteMarker);
+                    } else {
+                        markdown = convertInlineFootnotesToNumbered(markdown);
+                        markdown = processFootnotesNumbered(markdown, footnoteMarker);
+                    }
+                    
+                    // Extract title from first heading
+                    const titleMatch = markdown.match(/^#+\s*(.*?)\s*$/m);
+                    const title = titleMatch ? titleMatch[1].trim() : file.name.replace('.docx', '');
+                    
+                    // Add YAML frontmatter
+                    if (document.getElementById('addYaml').checked) {
+                        let yaml = document.getElementById('yamlContent').value.trim();
+                        yaml = yaml.replace(/\{date\}/g, getCurrentDate());
+                        yaml = yaml.replace(/\{title\}/g, title);
+                        markdown = `---\n${yaml}\n---\n\n${markdown}`;
+                    }
+                    
+                    // Determine filename (NO TIMESTAMP)
+                    let outputFilename;
+                    const prefix = document.getElementById('outputPrefix').value;
+                    const suffix = document.getElementById('outputSuffix').value;
+                    
+                    if (document.getElementById('useTitleAsFilename').checked && title) {
+                        outputFilename = prefix + toTitleCase(title) + suffix;
+                    } else {
+                        outputFilename = prefix + file.name.replace('.docx', '') + suffix;
+                    }
+                    
+                    if (!inlineFootnotes) {
+                        outputFilename += '_2part';
+                    }
+                    
+                    // Prepare output data
+                    const extractMedia = document.getElementById('extractMedia').checked;
+                    const outputData = {
+                        timestamp: runTimestamp || getTimestamp(),
+                        filename: outputFilename,
+                        markdown,
+                        images: extractMedia ? images : [],
+                        summary: {
+                            script_name: '250106_Docx_To_Obsidian_Markdown_Converter.html',
+                            timestamp: runTimestamp || getTimestamp(),
+                            input_file: file.name,
+                            output_description: ARGS.OUTPUT_DESCRIPTION,
+                            settings: {
+                                inline_footnotes: inlineFootnotes,
+                                footnote_marker: footnoteMarker,
+                                extract_media: extractMedia,
+                                use_title_as_filename: document.getElementById('useTitleAsFilename').checked,
+                                output_prefix: prefix,
+                                output_suffix: suffix
+                            },
+                            statistics: {
+                                word_count: markdown.split(/\s+/).length,
+                                image_count: images.length,
+                                markdown_size_kb: (new Blob([markdown]).size / 1024).toFixed(2)
+                            }
+                        }
+                    };
+                    
+                    // Save files (skip summary - will save batch summary at end)
+                    if (outputFolder) {
+                        await saveFilesToFolder(outputFolder, outputData, true); // skipSummary = true
+                    } else {
+                        await downloadFilesIndividually(outputData);
+                    }
+                    
+                    processedData.push(outputData);
+                    allSummaries.push(outputData.summary);
+                    
+                    totalWords += outputData.summary.statistics.word_count;
+                    totalImages += images.length;
+                    totalSize += parseFloat(outputData.summary.statistics.markdown_size_kb);
+                }
+                
+                // Save batch summary file (one summary for all files)
+                if (outputFolder && allSummaries.length > 0) {
+                    updateProgress(95, 'Saving batch summary...');
+                    
+                    const batchSummary = {
+                        script_name: '250106_Docx_To_Obsidian_Markdown_Converter.html',
+                        run_timestamp: runTimestamp,
+                        output_description: ARGS.OUTPUT_DESCRIPTION,
+                        total_files_processed: allSummaries.length,
+                        files: allSummaries,
+                        total_statistics: {
+                            total_word_count: totalWords,
+                            total_image_count: totalImages,
+                            total_markdown_size_kb: totalSize.toFixed(2)
+                        },
+                        settings: allSummaries[0].settings // Use settings from first file
+                    };
+                    
+                    const summaryFilename = `${runTimestamp} - summary.json`;
+                    let summaryAttempts = 0;
+                    const maxSummaryRetries = 3;
+                    
+                    while (summaryAttempts < maxSummaryRetries) {
+                        try {
+                            // Re-verify folder is accessible
+                            if (!outputFolder || outputFolder.kind !== 'directory') {
+                                outputFolder = await getOrCreateOutputFolder(folderHandle, runTimestamp);
+                            }
+                            
+                            const summaryFile = await outputFolder.getFileHandle(summaryFilename, { create: true });
+                            const summaryWritable = await summaryFile.createWritable();
+                            const summaryContent = JSON.stringify(batchSummary, null, 2);
+                            await summaryWritable.write(summaryContent);
+                            await summaryWritable.close();
+                            console.log(`✓ Successfully saved batch summary: ${summaryFilename}`);
+                            break;
+                        } catch (e) {
+                            summaryAttempts++;
+                            console.warn(`Batch summary save attempt ${summaryAttempts} failed:`, e.message);
+                            
+                            if (summaryAttempts >= maxSummaryRetries) {
+                                console.error(`Error saving batch summary after ${maxSummaryRetries} attempts:`, e);
+                                // Don't throw - just warn, as files are already saved
+                            } else {
+                                await new Promise(resolve => setTimeout(resolve, 300 * summaryAttempts));
+                            }
+                        }
+                    }
+                }
+                
+                // Update stats
+                document.getElementById('statsSection').style.display = 'block';
+                document.getElementById('statFiles').textContent = selectedFiles.length;
+                document.getElementById('statWords').textContent = totalWords.toLocaleString();
+                document.getElementById('statImages').textContent = totalImages;
+                document.getElementById('statSize').textContent = totalSize.toFixed(1);
+                
+                // Show preview of last file
+                if (processedData.length > 0) {
+                    const lastData = processedData[processedData.length - 1];
+                    const preview = lastData.markdown.substring(0, 2000);
+                    document.getElementById('previewContent').textContent = preview + (lastData.markdown.length > 2000 ? '\n\n... [truncated]' : '');
+                }
+                
+                updateProgress(100, `Complete! Processed ${selectedFiles.length} file(s)`);
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+                updateProgress(0, 'Error: ' + error.message);
+            } finally {
+                document.getElementById('convertBtn').disabled = false;
+            }
+        }
+
+        // --------------------EVENT HANDLERS
+
+        document.getElementById('docxInput').addEventListener('change', (e) => {
+            selectedFiles = Array.from(e.target.files);
+            
+            if (selectedFiles.length > 0) {
+                const fileInfo = document.getElementById('fileInfo');
+                fileInfo.style.display = 'block';
+                
+                if (selectedFiles.length === 1) {
+                    const file = selectedFiles[0];
+                    fileInfo.innerHTML = `<strong>Selected:</strong> ${file.name}<br><strong>Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+                } else {
+                    const totalSize = selectedFiles.reduce((sum, f) => sum + f.size, 0);
+                    fileInfo.innerHTML = `<strong>Selected:</strong> ${selectedFiles.length} files<br><strong>Total Size:</strong> ${(totalSize / 1024 / 1024).toFixed(2)} MB`;
+                }
+                
+                document.getElementById('convertBtn').disabled = false;
+            } else {
+                document.getElementById('fileInfo').style.display = 'none';
+                document.getElementById('convertBtn').disabled = true;
+            }
+        });
+
+        document.getElementById('convertBtn').addEventListener('click', processFiles);
+
+        // Toggle YAML textarea
+        document.getElementById('addYaml').addEventListener('change', (e) => {
+            document.getElementById('yamlContent').disabled = !e.target.checked;
+        });
+
+        // Initialize
+        updateProgress(0, 'Ready');
+    </script>
+</body>
+</html>
+
