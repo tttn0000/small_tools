@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Processed Via LLM To Obsidian MD Converter</title>
+    <style>
+        /* ==================== ARGS ==================== */
+        :root {
+            --app-name: "Text Processed Via LLM To Obsidian MD Converter";
+            --output-description: "Text Processed Via LLM To Obsidian MD";
+            --default-model: "gpt-5-mini";
+            --default-verbosity: "medium";
+            --default-reasoning-effort: "medium";
+            --default-service-tier: "flex";
+            --default-temperature: 0.7;
+            --default-top-p: 1.0;
+            --default-store: true;
+            
+            /* UI Colors */
+            --primary-bg: #f5f5f5;
+            --secondary-bg: #ffffff;
+            --border-color: #ddd;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --button-primary: #4CAF50;
+            --button-secondary: #2196F3;
+            --button-danger: #f44336;
+            --button-hover: #45a049;
+            --success-color: #4CAF50;
+            --error-color: #f44336;
+            --warning-color: #ff9800;
+            --info-color: #2196F3;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--primary-bg);
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--secondary-bg);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        h2 {
+            color: var(--text-primary);
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-size: 20px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+
+        h3 {
+            color: var(--text-secondary);
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="password"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .inline-group {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .inline-group .form-group {
+            flex: 1;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            font-weight: normal;
+        }
+
+        button {
+            background-color: var(--button-primary);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: var(--button-hover);
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .button-secondary {
+            background-color: var(--button-secondary);
+        }
+
+        .button-secondary:hover {
+            background-color: #1976D2;
+        }
+
+        .button-danger {
+            background-color: var(--button-danger);
+        }
+
+        .button-danger:hover {
+            background-color: #d32f2f;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .file-drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 4px;
+            padding: 40px;
+            text-align: center;
+            background-color: #fafafa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-drop-zone:hover,
+        .file-drop-zone.dragover {
+            border-color: var(--button-primary);
+            background-color: #f0f8f0;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--button-primary);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 500;
+        }
+
+        .log-container {
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        .log-info {
+            color: var(--info-color);
+        }
+
+        .log-success {
+            color: var(--success-color);
+        }
+
+        .log-error {
+            color: var(--error-color);
+            background-color: #ffebee;
+        }
+
+        .log-warning {
+            color: var(--warning-color);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: #fafafa;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        .prompt-inputs {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .prompt-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .warning-text {
+            color: var(--warning-color);
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .info-text {
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .grid-3col {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2col,
+            .grid-3col {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Text Processed Via LLM To Obsidian MD Converter</h1>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+            Process text through OpenAI API and convert responses to Obsidian Markdown with YAML frontmatter
+        </p>
+
+        <!-- API Configuration -->
+        <div class="section">
+            <h2>🔑 API Configuration</h2>
+            <div class="form-group">
+                <label for="apiKey">OpenAI API Key *</label>
+                <input type="password" id="apiKey" placeholder="sk-proj-...">
+                <p class="info-text">Your API key is never stored and only used for API calls</p>
+            </div>
+        </div>
+
+        <!-- Input Section -->
+        <div class="section">
+            <h2>📄 Input Text</h2>
+            <div class="file-drop-zone" id="dropZone">
+                <p>📁 Drag & drop a text file here or click to select</p>
+                <p class="info-text">Supports .txt, .md files</p>
+                <input type="file" id="fileInput" accept=".txt,.md" style="display: none;">
+            </div>
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="inputText">Or paste text directly:</label>
+                <textarea id="inputText" placeholder="Paste your text content here..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="inputFileName">Input Name (for output folder):</label>
+                <input type="text" id="inputFileName" placeholder="e.g., MyDocument">
+            </div>
+        </div>
+
+        <!-- Model & Parameters -->
+        <div class="section">
+            <h2>⚙️ Model & Generation Parameters</h2>
+            
+            <div class="grid-2col">
+                <div class="form-group">
+                    <label for="model">Model *</label>
+                    <select id="model">
+                        <option value="gpt-5-nano">gpt-5-nano</option>
+                        <option value="gpt-5-mini" selected>gpt-5-mini (default)</option>
+                        <option value="gpt-5">gpt-5</option>
+                        <option value="gpt-4o-mini">gpt-4o-mini (legacy)</option>
+                        <option value="gpt-4o">gpt-4o (legacy)</option>
+                    </select>
+                    <p class="info-text">Note: gpt-5-pro not available for Flex tier</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="serviceTier">Service Tier</label>
+                    <select id="serviceTier">
+                        <option value="flex" selected>Flex (default)</option>
+                        <option value="standard">Standard</option>
+                    </select>
+                    <p class="info-text">Flex offers lower priority but more economical pricing</p>
+                </div>
+            </div>
+
+            <div class="grid-3col">
+                <div class="form-group">
+                    <label for="verbosity">Verbosity</label>
+                    <select id="verbosity">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="reasoningEffort">Reasoning Effort</label>
+                    <select id="reasoningEffort">
+                        <option value="minimal">Minimal</option>
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="temperature">Temperature (0-2)</label>
+                    <input type="number" id="temperature" min="0" max="2" step="0.1" value="0.7">
+                    <p class="info-text">Higher = more random, Lower = more focused</p>
+                </div>
+            </div>
+
+            <div class="grid-2col">
+                <div class="form-group">
+                    <label for="topP">Top P (0-1)</label>
+                    <input type="number" id="topP" min="0" max="1" step="0.1" value="1.0">
+                    <p class="warning-text">⚠️ Don't adjust both temperature and top_p</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="maxTokens">Max Tokens (optional)</label>
+                    <input type="number" id="maxTokens" min="1" placeholder="Leave empty for auto">
+                </div>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="storeResponse" checked>
+                <label for="storeResponse">Store response for later retrieval via API</label>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="enableStateful" checked>
+                <label for="enableStateful">Enable stateful conversations (prompt_key & conversation_id)</label>
+            </div>
+        </div>
+
+        <!-- Prompt Configuration -->
+        <div class="section">
+            <h2>💬 Prompt Configuration</h2>
+            
+            <div class="form-group">
+                <label for="systemPrompt">System Prompt</label>
+                <textarea id="systemPrompt" rows="4" placeholder="You are a helpful assistant that converts text to structured markdown...">You are an expert at converting text content into well-structured Obsidian-compatible Markdown with YAML frontmatter. Format the content with appropriate headings, lists, and metadata.</textarea>
+            </div>
+
+            <div class="prompt-inputs" id="userPromptsContainer">
+                <h3>User Prompts</h3>
+                <div class="prompt-item" id="userPrompt1Container">
+                    <label for="userPrompt1">User Prompt 1</label>
+                    <textarea id="userPrompt1" rows="3" placeholder="{{INPUT_TEXT}}">Convert the following text into a well-structured Obsidian markdown note with appropriate YAML frontmatter:
+
+{{INPUT_TEXT}}</textarea>
+                </div>
+            </div>
+            <button type="button" class="button-secondary" onclick="addUserPrompt()">+ Add User Prompt</button>
+
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="responseFormat">Response Format</label>
+                <select id="responseFormat">
+                    <option value="text" selected>Text</option>
+                    <option value="json_object">JSON Object</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Output Configuration -->
+        <div class="section">
+            <h2>📤 Output Configuration</h2>
+            
+            <div class="form-group">
+                <label>YAML Frontmatter Fields (one per line, format: key: value)</label>
+                <textarea id="yamlFields" rows="6" placeholder="title: {{INPUT_NAME}}
+created: {{TIMESTAMP}}
+tags: [processed, ai-generated]
+source: openai
+model: {{MODEL}}">title: {{INPUT_NAME}}
+created: {{TIMESTAMP}}
+tags: [processed, ai-generated]
+source: openai
+model: {{MODEL}}</textarea>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="section">
+            <div class="button-group">
+                <button type="button" onclick="processText()" id="processBtn">🚀 Process Text</button>
+                <button type="button" class="button-secondary" onclick="clearAll()">🔄 Clear All</button>
+                <button type="button" class="button-danger" onclick="cancelProcessing()" id="cancelBtn" style="display: none;">❌ Cancel</button>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-container" id="progressContainer">
+            <h3>Processing...</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+            <p id="progressText" style="margin-top: 10px; color: var(--text-secondary);"></p>
+        </div>
+
+        <!-- Statistics -->
+        <div class="section" id="statsSection" style="display: none;">
+            <h2>📊 Processing Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Input Tokens</div>
+                    <div class="stat-value" id="statInputTokens">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Output Tokens</div>
+                    <div class="stat-value" id="statOutputTokens">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Tokens</div>
+                    <div class="stat-value" id="statTotalTokens">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">API Calls</div>
+                    <div class="stat-value" id="statApiCalls">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log -->
+        <div class="section">
+            <h2>📋 Processing Log</h2>
+            <div class="log-container" id="logContainer">
+                <div class="log-entry log-info">Ready to process text...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== GLOBAL STATE ====================
+        let processingState = {
+            isProcessing: false,
+            cancelled: false,
+            conversationId: null,
+            promptKey: null,
+            stats: {
+                inputTokens: 0,
+                outputTokens: 0,
+                totalTokens: 0,
+                apiCalls: 0
+            }
+        };
+
+        let userPromptCount = 1;
+        let outputDirHandle = null;
+        let currentRunFolderHandle = null;
+
+        // ==================== UTILITY FUNCTIONS ====================
+        function getTimestamp() {
+            const now = new Date();
+            const yy = String(now.getFullYear()).slice(-2);
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const hh = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            return `${yy}${mm}${dd}${hh}${min}`;
+        }
+
+        function getISOTimestamp() {
+            return new Date().toISOString();
+        }
+
+        function log(message, type = 'info') {
+            const container = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateProgress(percent, text) {
+            const fill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            fill.style.width = `${percent}%`;
+            fill.textContent = `${percent}%`;
+            if (text) progressText.textContent = text;
+        }
+
+        function showProgress() {
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('processBtn').disabled = true;
+            document.getElementById('cancelBtn').style.display = 'inline-block';
+        }
+
+        function hideProgress() {
+            document.getElementById('progressContainer').style.display = 'none';
+            document.getElementById('processBtn').disabled = false;
+            document.getElementById('cancelBtn').style.display = 'none';
+        }
+
+        function updateStats() {
+            document.getElementById('statsSection').style.display = 'block';
+            document.getElementById('statInputTokens').textContent = processingState.stats.inputTokens.toLocaleString();
+            document.getElementById('statOutputTokens').textContent = processingState.stats.outputTokens.toLocaleString();
+            document.getElementById('statTotalTokens').textContent = processingState.stats.totalTokens.toLocaleString();
+            document.getElementById('statApiCalls').textContent = processingState.stats.apiCalls;
+        }
+
+        // ==================== FILE HANDLING ====================
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                await handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', async (e) => {
+            if (e.target.files.length > 0) {
+                await handleFile(e.target.files[0]);
+            }
+        });
+
+        async function handleFile(file) {
+            try {
+                const text = await file.text();
+                document.getElementById('inputText').value = text;
+                
+                const baseName = file.name.replace(/\.[^/.]+$/, '');
+                document.getElementById('inputFileName').value = baseName;
+                
+                log(`Loaded file: ${file.name} (${text.length} characters)`, 'success');
+            } catch (error) {
+                log(`Error reading file: ${error.message}`, 'error');
+            }
+        }
+
+        async function setupOutputDirectory() {
+            try {
+                if ('showDirectoryPicker' in window) {
+                    outputDirHandle = await window.showDirectoryPicker({
+                        mode: 'readwrite',
+                        startIn: 'documents'
+                    });
+                    log(`Output directory selected: ${outputDirHandle.name}`, 'success');
+                    return true;
+                } else {
+                    log('File System Access API not available. Will prompt for each file.', 'warning');
+                    return false;
+                }
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    log(`Error selecting directory: ${error.message}`, 'error');
+                }
+                return false;
+            }
+        }
+
+        async function createRunFolder(inputName) {
+            const timestamp = getTimestamp();
+            const outputDesc = 'Text Processed Via LLM To Obsidian MD';
+            const folderName = `[${timestamp}] - ${outputDesc} - (${inputName})`;
+            
+            try {
+                if (outputDirHandle) {
+                    currentRunFolderHandle = await outputDirHandle.getDirectoryHandle(folderName, { create: true });
+                    log(`Created run folder: ${folderName}`, 'success');
+                    return folderName;
+                } else {
+                    log(`Please create folder manually: ${folderName}`, 'warning');
+                    return folderName;
+                }
+            } catch (error) {
+                log(`Error creating run folder: ${error.message}`, 'error');
+                return folderName;
+            }
+        }
+
+        async function saveFile(filename, content, isJSON = false) {
+            try {
+                if (currentRunFolderHandle) {
+                    const fileHandle = await currentRunFolderHandle.getFileHandle(filename, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(isJSON ? JSON.stringify(content, null, 2) : content);
+                    await writable.close();
+                    log(`Saved: ${filename}`, 'success');
+                } else {
+                    const blob = new Blob([isJSON ? JSON.stringify(content, null, 2) : content], 
+                                        { type: isJSON ? 'application/json' : 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    log(`Download initiated: ${filename}`, 'info');
+                }
+            } catch (error) {
+                log(`Error saving ${filename}: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // ==================== PROMPT MANAGEMENT ====================
+        function addUserPrompt() {
+            userPromptCount++;
+            const container = document.getElementById('userPromptsContainer');
+            const promptItem = document.createElement('div');
+            promptItem.className = 'prompt-item';
+            promptItem.id = `userPrompt${userPromptCount}Container`;
+            promptItem.innerHTML = `
+                <label for="userPrompt${userPromptCount}">User Prompt ${userPromptCount}</label>
+                <textarea id="userPrompt${userPromptCount}" rows="3" placeholder="Enter user prompt ${userPromptCount}..."></textarea>
+                <button type="button" class="button-danger" onclick="removeUserPrompt(${userPromptCount})" style="margin-top: 5px;">Remove</button>
+            `;
+            container.appendChild(promptItem);
+            log(`Added user prompt ${userPromptCount}`, 'info');
+        }
+
+        function removeUserPrompt(index) {
+            const container = document.getElementById(`userPrompt${index}Container`);
+            if (container) {
+                container.remove();
+                log(`Removed user prompt ${index}`, 'info');
+            }
+        }
+
+        function collectUserPrompts() {
+            const prompts = [];
+            for (let i = 1; i <= userPromptCount; i++) {
+                const elem = document.getElementById(`userPrompt${i}`);
+                if (elem && elem.value.trim()) {
+                    prompts.push(elem.value.trim());
+                }
+            }
+            return prompts;
+        }
+
+        // ==================== OPENAI API CALLS ====================
+        async function callOpenAI(apiKey, messages, config) {
+            const url = 'https://api.openai.com/v1/chat/completions';
+            
+            const requestBody = {
+                model: config.model,
+                messages: messages,
+                temperature: config.temperature,
+                top_p: config.topP,
+                store: config.store
+            };
+
+            if (config.maxTokens) {
+                requestBody.max_tokens = config.maxTokens;
+            }
+
+            if (config.responseFormat === 'json_object') {
+                requestBody.response_format = { type: 'json_object' };
+            }
+
+            // Add metadata for stateful conversations
+            if (config.enableStateful) {
+                requestBody.metadata = {};
+                if (processingState.conversationId) {
+                    requestBody.metadata.conversation_id = processingState.conversationId;
+                }
+                if (processingState.promptKey) {
+                    requestBody.metadata.prompt_key = processingState.promptKey;
+                }
+            }
+
+            // Note: verbosity, reasoning_effort, service_tier are not standard ChatCompletion parameters
+            // These would need to be used with specific models or endpoints that support them
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error?.message || `API request failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Track tokens
+                if (data.usage) {
+                    processingState.stats.inputTokens += data.usage.prompt_tokens || 0;
+                    processingState.stats.outputTokens += data.usage.completion_tokens || 0;
+                    processingState.stats.totalTokens += data.usage.total_tokens || 0;
+                }
+                processingState.stats.apiCalls++;
+
+                // Extract conversation tracking IDs if present
+                if (data.id && config.enableStateful) {
+                    if (!processingState.conversationId) {
+                        processingState.conversationId = data.id;
+                    }
+                    if (!processingState.promptKey) {
+                        processingState.promptKey = data.id;
+                    }
+                }
+
+                return data;
+            } catch (error) {
+                log(`API Error: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // ==================== TEXT PROCESSING ====================
+        async function processText() {
+            // Validation
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) {
+                alert('Please enter your OpenAI API key');
+                return;
+            }
+
+            const inputText = document.getElementById('inputText').value.trim();
+            if (!inputText) {
+                alert('Please provide input text');
+                return;
+            }
+
+            let inputName = document.getElementById('inputFileName').value.trim();
+            if (!inputName) {
+                inputName = 'UnnamedInput';
+            }
+
+            // Setup output directory
+            const hasDirectoryAccess = await setupOutputDirectory();
+            const folderName = await createRunFolder(inputName);
+
+            // Reset state
+            processingState.isProcessing = true;
+            processingState.cancelled = false;
+            processingState.conversationId = null;
+            processingState.promptKey = null;
+            processingState.stats = {
+                inputTokens: 0,
+                outputTokens: 0,
+                totalTokens: 0,
+                apiCalls: 0
+            };
+
+            showProgress();
+            log('Starting processing...', 'info');
+            updateProgress(10, 'Preparing prompts...');
+
+            try {
+                // Collect configuration
+                const config = {
+                    model: document.getElementById('model').value,
+                    serviceTier: document.getElementById('serviceTier').value,
+                    verbosity: document.getElementById('verbosity').value,
+                    reasoningEffort: document.getElementById('reasoningEffort').value,
+                    temperature: parseFloat(document.getElementById('temperature').value),
+                    topP: parseFloat(document.getElementById('topP').value),
+                    maxTokens: parseInt(document.getElementById('maxTokens').value) || null,
+                    store: document.getElementById('storeResponse').checked,
+                    enableStateful: document.getElementById('enableStateful').checked,
+                    responseFormat: document.getElementById('responseFormat').value
+                };
+
+                // Collect prompts
+                const systemPrompt = document.getElementById('systemPrompt').value.trim();
+                const userPrompts = collectUserPrompts();
+                
+                if (userPrompts.length === 0) {
+                    throw new Error('At least one user prompt is required');
+                }
+
+                updateProgress(20, 'Processing with OpenAI...');
+
+                // Build messages
+                const messages = [
+                    { role: 'system', content: systemPrompt }
+                ];
+
+                // Process each user prompt in sequence
+                let lastResponse = null;
+                for (let i = 0; i < userPrompts.length; i++) {
+                    if (processingState.cancelled) {
+                        log('Processing cancelled by user', 'warning');
+                        return;
+                    }
+
+                    const promptTemplate = userPrompts[i];
+                    const prompt = promptTemplate.replace(/\{\{INPUT_TEXT\}\}/g, inputText);
+                    
+                    messages.push({ role: 'user', content: prompt });
+                    
+                    log(`Sending API call ${i + 1} of ${userPrompts.length}...`, 'info');
+                    
+                    const response = await callOpenAI(apiKey, messages, config);
+                    lastResponse = response.choices[0].message.content;
+                    
+                    // Add assistant response to conversation
+                    messages.push({ role: 'assistant', content: lastResponse });
+                    
+                    const progress = 20 + (60 * (i + 1) / userPrompts.length);
+                    updateProgress(Math.round(progress), `Processed prompt ${i + 1} of ${userPrompts.length}`);
+                    
+                    updateStats();
+                }
+
+                updateProgress(85, 'Generating Obsidian markdown...');
+
+                // Generate YAML frontmatter
+                const yamlFieldsText = document.getElementById('yamlFields').value.trim();
+                const yamlLines = yamlFieldsText.split('\n').map(line => {
+                    return line
+                        .replace(/\{\{INPUT_NAME\}\}/g, inputName)
+                        .replace(/\{\{TIMESTAMP\}\}/g, getISOTimestamp())
+                        .replace(/\{\{MODEL\}\}/g, config.model);
+                });
+                
+                const yamlFrontmatter = '---\n' + yamlLines.join('\n') + '\n---\n\n';
+                
+                // Create final markdown
+                const markdownContent = yamlFrontmatter + lastResponse;
+
+                updateProgress(90, 'Saving files...');
+
+                // Save markdown file
+                const timestamp = getTimestamp();
+                const mdFilename = `[${timestamp}]_${inputName}.md`;
+                await saveFile(mdFilename, markdownContent);
+
+                // Save raw response
+                const rawFilename = `[${timestamp}]_${inputName}_raw_response.txt`;
+                await saveFile(rawFilename, lastResponse);
+
+                // Create run summary
+                const summary = {
+                    timestamp: getISOTimestamp(),
+                    timestamp_yymmddhhmm: timestamp,
+                    input_name: inputName,
+                    folder_name: folderName,
+                    config: config,
+                    statistics: {
+                        input_tokens: processingState.stats.inputTokens,
+                        output_tokens: processingState.stats.outputTokens,
+                        total_tokens: processingState.stats.totalTokens,
+                        api_calls: processingState.stats.apiCalls
+                    },
+                    conversation_id: processingState.conversationId,
+                    prompt_key: processingState.promptKey,
+                    prompts: {
+                        system: systemPrompt,
+                        user_prompts: userPrompts
+                    },
+                    output_files: [mdFilename, rawFilename]
+                };
+
+                const summaryFilename = `[${timestamp}]_run_summary.json`;
+                await saveFile(summaryFilename, summary, true);
+
+                updateProgress(100, 'Processing complete!');
+                log('Processing completed successfully!', 'success');
+                log(`Total tokens: ${processingState.stats.totalTokens} (Input: ${processingState.stats.inputTokens}, Output: ${processingState.stats.outputTokens})`, 'success');
+
+            } catch (error) {
+                log(`Processing failed: ${error.message}`, 'error');
+                alert(`Error: ${error.message}`);
+            } finally {
+                processingState.isProcessing = false;
+                hideProgress();
+            }
+        }
+
+        function cancelProcessing() {
+            processingState.cancelled = true;
+            log('Cancellation requested...', 'warning');
+        }
+
+        function clearAll() {
+            if (processingState.isProcessing) {
+                if (!confirm('Processing is in progress. Are you sure you want to clear?')) {
+                    return;
+                }
+            }
+            
+            document.getElementById('inputText').value = '';
+            document.getElementById('inputFileName').value = '';
+            document.getElementById('apiKey').value = '';
+            
+            // Reset prompts to default
+            document.getElementById('systemPrompt').value = 'You are an expert at converting text content into well-structured Obsidian-compatible Markdown with YAML frontmatter. Format the content with appropriate headings, lists, and metadata.';
+            document.getElementById('userPrompt1').value = 'Convert the following text into a well-structured Obsidian markdown note with appropriate YAML frontmatter:\n\n{{INPUT_TEXT}}';
+            
+            // Remove extra user prompts
+            for (let i = 2; i <= userPromptCount; i++) {
+                const container = document.getElementById(`userPrompt${i}Container`);
+                if (container) container.remove();
+            }
+            userPromptCount = 1;
+            
+            // Reset stats
+            processingState.stats = {
+                inputTokens: 0,
+                outputTokens: 0,
+                totalTokens: 0,
+                apiCalls: 0
+            };
+            updateStats();
+            document.getElementById('statsSection').style.display = 'none';
+            
+            // Clear log
+            document.getElementById('logContainer').innerHTML = '<div class="log-entry log-info">Ready to process text...</div>';
+            
+            log('All fields cleared', 'info');
+        }
+
+        // ==================== INITIALIZATION ====================
+        window.addEventListener('load', () => {
+            log('Application loaded and ready', 'success');
+            log('Enter your OpenAI API key and input text to begin', 'info');
+        });
+    </script>
+</body>
+</html>
+

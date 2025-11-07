@@ -92,7 +92,7 @@
           <span class="item"><input id="optAlias" type="checkbox" checked> <label for="optAlias">Add title alias</label></span>
         </div>
         <label>Title Length</label>
-        <input id="titleLen" type="number" min="30" max="100" step="1" value="35">
+        <input id="titleLen" type="number" min="20" max="30" step="1" value="30">
         <label>Change title case (alias only)</label>
         <select id="caseMode">
           <option value="title">title</option>
@@ -105,7 +105,7 @@
 
     <div class="rightcol">
       <div class="card">
-        <h2>TN_Library_IDs</h2>
+        <h2>TN Library IDs</h2>
         <div id="output" class="output"></div>
         <div class="toolbar" style="margin-top:8px">
           <button id="btnCopy" class="btn secondary" disabled>Copy</button>
@@ -118,9 +118,12 @@
 
 <script>
 // -------------------- TN_Library_ID Generation Logic --------------------
-const DEFAULT_TITLE_LENGTH = 35;
-const MIN_TITLE_LENGTH = 30;
+const TN_ID_TOTAL_MAX = 35; // Max total characters, including 'YYYY-'
 const YEAR_LENGTH = 4;
+const SEPARATOR_LENGTH = 1; // '-'
+const MAX_TITLE_CHARS = TN_ID_TOTAL_MAX - (YEAR_LENGTH + SEPARATOR_LENGTH); // 30
+const DEFAULT_TITLE_LENGTH = MAX_TITLE_CHARS;
+const MIN_TITLE_LENGTH = 20;
 const TITLE_PADDING_CHAR = "-";
 const TITLE_REPLACE_CHAR = "_";
 
@@ -142,15 +145,19 @@ function padTitle(title, targetLength=DEFAULT_TITLE_LENGTH){
   return title + TITLE_PADDING_CHAR.repeat(targetLength - title.length);
 }
 
-function generatePaperId(year, title, titleLength=DEFAULT_TITLE_LENGTH){
+function generateTNLibraryId(year, title, titleLength=DEFAULT_TITLE_LENGTH){
   if(!/^[0-9]{4}$/.test(year)){
     throw new Error(`Year must be exactly ${YEAR_LENGTH} digits`);
   }
   if(!title.trim()){
     throw new Error("Title cannot be empty");
   }
+  // Clamp title length to allowed range and cap to ensure total TN ID <= TN_ID_TOTAL_MAX
   if(titleLength < MIN_TITLE_LENGTH){
-    throw new Error(`Title length must be at least ${MIN_TITLE_LENGTH}`);
+    titleLength = MIN_TITLE_LENGTH;
+  }
+  if(titleLength > MAX_TITLE_CHARS){
+    titleLength = MAX_TITLE_CHARS;
   }
   const normalized = normalizeTitle(title);
   const padded = padTitle(normalized, titleLength);
@@ -187,7 +194,10 @@ function generateFormattedOutput() {
     return;
   }
   
-  const length = parseInt(document.getElementById("titleLen").value) || DEFAULT_TITLE_LENGTH;
+  let length = parseInt(document.getElementById("titleLen").value) || DEFAULT_TITLE_LENGTH;
+  // Cap UI-provided length so total TN Library ID stays within 35 chars
+  if (length > MAX_TITLE_CHARS) length = MAX_TITLE_CHARS;
+  if (length < MIN_TITLE_LENGTH) length = MIN_TITLE_LENGTH;
   const caseMode = document.getElementById("caseMode").value;
   const useBrackets = document.getElementById("optBrackets").checked;
   const useDot = document.getElementById("optDot").checked;
@@ -195,7 +205,7 @@ function generateFormattedOutput() {
   const useAlias = document.getElementById("optAlias").checked;
 
   const lines = papers.map((p, i) => {
-    let base = generatePaperId(String(p.year), p.title, length);
+    let base = generateTNLibraryId(String(p.year), p.title, length);
     if (useAlias) {
       let alias = p.title;
       if (caseMode === "upper") alias = alias.toUpperCase();

@@ -110,6 +110,7 @@
 
       <div class="row">
         <label class="chk"><input type="checkbox" id="flagAsciiOnly" checked> Flag any character outside ASCII printable + tab/newline/CR</label>
+        <label class="chk"><input type="checkbox" id="allowVietnamese" checked> Allow Vietnamese characters</label>
         <label class="chk"><input type="checkbox" id="showPreview" checked> Highlight flagged in preview</label>
       </div>
 
@@ -197,6 +198,7 @@
   const rCompat = document.getElementById('rCompat');
   const rStripDia = document.getElementById('rStripDia');
   const flagAsciiOnly = document.getElementById('flagAsciiOnly');
+  const allowVietnamese = document.getElementById('allowVietnamese');
   const showPreview = document.getElementById('showPreview');
 
   const convertBtn = document.getElementById('convertBtn');
@@ -216,14 +218,19 @@
     { start: 0x0020, end: 0x007E, name: 'Printable ASCII' }
   ];
 
+  const VIETNAMESE_RANGES = [
+    { start: 0x00C0, end: 0x00FF, name: 'Latin-1 Supplement (Vietnamese)' },
+    { start: 0x0100, end: 0x017F, name: 'Latin Extended-A (Vietnamese)' },
+    { start: 0x0180, end: 0x024F, name: 'Latin Extended-B (Vietnamese: ư, ơ, etc.)' },
+    { start: 0x1E00, end: 0x1EFF, name: 'Latin Extended Additional (Vietnamese)' }
+  ];
+
   const EXTENDED_SET = [
     { start: 0x0009, end: 0x0009, name: 'TAB' },
     { start: 0x000A, end: 0x000A, name: 'LF' },
     { start: 0x000D, end: 0x000D, name: 'CR' },
     { start: 0x0020, end: 0x007E, name: 'Printable ASCII' },
     { start: 0x00A0, end: 0x00A0, name: 'Non-breaking space' },
-    { start: 0x00C0, end: 0x00FF, name: 'Latin-1 Supplement' },
-    { start: 0x0100, end: 0x017F, name: 'Latin Extended-A' },
     { start: 0x0180, end: 0x024F, name: 'Latin Extended-B' },
     { start: 0x2000, end: 0x206F, name: 'General Punctuation' },
     { start: 0x2070, end: 0x209F, name: 'Superscripts and Subscripts' },
@@ -330,7 +337,11 @@
   const allowedChar = (ch) => {
     if (!flagAsciiOnly.checked) return true;
     const code = ch.codePointAt(0);
-    return isCharInRange(code, permissibleRanges);
+    // Check base permissible ranges
+    if (isCharInRange(code, permissibleRanges)) return true;
+    // Check Vietnamese ranges if enabled
+    if (allowVietnamese.checked && isCharInRange(code, VIETNAMESE_RANGES)) return true;
+    return false;
   };
 
   const isCharEmpty = (ch) => {
@@ -349,7 +360,13 @@
 
   // Unicode range management functions
   const updateRangeList = () => {
-    rangeList.innerHTML = permissibleRanges.map(range => 
+    let rangesToShow = [...permissibleRanges];
+    // Add Vietnamese ranges if enabled
+    if (allowVietnamese.checked) {
+      rangesToShow = [...rangesToShow, ...VIETNAMESE_RANGES];
+      rangesToShow.sort((a, b) => a.start - b.start);
+    }
+    rangeList.innerHTML = rangesToShow.map(range => 
       `<div>U+${range.start.toString(16).toUpperCase().padStart(4,'0')}-U+${range.end.toString(16).toUpperCase().padStart(4,'0')} (${range.name})</div>`
     ).join('');
   };
@@ -662,9 +679,12 @@
   for (const id of [
     'rDashes','rQuotes','rApos','rEllip','rBullets','rSpaces','rCollapse',
     'rZwj','rFullwidth','rSlashes','rLineSep','rTrimLines','rCompat','rStripDia',
-    'flagAsciiOnly','showPreview'
+    'flagAsciiOnly','allowVietnamese','showPreview'
   ]){
-    document.getElementById(id).addEventListener('change', update);
+    document.getElementById(id).addEventListener('change', () => {
+      updateRangeList();
+      update();
+    });
   }
   elIn.addEventListener('input', update);
   document.getElementById('convertBtn').addEventListener('click', update);
