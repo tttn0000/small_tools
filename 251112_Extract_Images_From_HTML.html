@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extract Images From HTML</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+
+        .section h2 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            color: #555;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #666;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 200px;
+        }
+
+        input[type="number"] {
+            width: 150px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #545b62;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background-color: #c82333;
+        }
+
+        #status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        #status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        #status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        #status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        #status.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        #progressContainer {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #28a745;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        #logContainer {
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            display: none;
+        }
+
+        .log-entry {
+            padding: 2px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-success {
+            color: #28a745;
+        }
+
+        .log-error {
+            color: #dc3545;
+        }
+
+        .log-warning {
+            color: #ffc107;
+        }
+
+        .log-info {
+            color: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <h1>Extract Images From HTML</h1>
+
+    <!-- Input Section -->
+    <div class="section">
+        <h2>Input HTML</h2>
+        <label for="urlInput">Fetch from URL (optional):</label>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="text" id="urlInput" placeholder="https://example.com/page or any website URL..." style="flex: 1;">
+            <button id="fetchBtn" class="btn-primary" style="white-space: nowrap;">Fetch HTML</button>
+        </div>
+        
+        <label for="sourceNameInput" style="margin-top: 10px;">Input Source Name (optional):</label>
+        <input type="text" id="sourceNameInput" placeholder="e.g., website_name or leave blank">
+        
+        <label for="htmlInput" style="margin-top: 10px;">Paste HTML Content:</label>
+        <textarea id="htmlInput" placeholder="Paste your HTML content here or fetch from URL above..."></textarea>
+        
+        <label for="baseUrlInput" style="margin-top: 10px;">Base URL (auto-filled from URL, or manual):</label>
+        <input type="text" id="baseUrlInput" placeholder="e.g., https://example.com">
+    </div>
+
+    <!-- Filter Section -->
+    <div class="section">
+        <h2>Filters</h2>
+        <label for="minSizeInput">Minimum File Size (KB):</label>
+        <input type="number" id="minSizeInput" value="50" min="0" step="1">
+        
+        <label style="margin-top: 10px;">File Types to Keep:</label>
+        <div class="checkbox-group">
+            <div class="checkbox-item">
+                <input type="checkbox" id="chkJpg" checked>
+                <label for="chkJpg" style="font-weight: normal; margin: 0;">JPG</label>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="chkPng" checked>
+                <label for="chkPng" style="font-weight: normal; margin: 0;">PNG</label>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="chkWebp" checked>
+                <label for="chkWebp" style="font-weight: normal; margin: 0;">WEBP</label>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="chkGif">
+                <label for="chkGif" style="font-weight: normal; margin: 0;">GIF</label>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="chkBmp">
+                <label for="chkBmp" style="font-weight: normal; margin: 0;">BMP</label>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="chkSvg">
+                <label for="chkSvg" style="font-weight: normal; margin: 0;">SVG</label>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="chkIco">
+                <label for="chkIco" style="font-weight: normal; margin: 0;">ICO</label>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="chkTiff">
+                <label for="chkTiff" style="font-weight: normal; margin: 0;">TIFF</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Control Section -->
+    <div class="section">
+        <h2>Actions</h2>
+        <div class="button-group">
+            <button id="extractBtn" class="btn-primary">Extract & Download Images</button>
+            <button id="cancelBtn" class="btn-danger" disabled>Cancel</button>
+            <button id="clearBtn" class="btn-secondary">Clear</button>
+        </div>
+    </div>
+
+    <!-- Status Section -->
+    <div id="status"></div>
+
+    <!-- Progress Section -->
+    <div id="progressContainer">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill">0%</div>
+        </div>
+    </div>
+
+    <!-- Log Section -->
+    <div id="logContainer"></div>
+
+    <script>
+        // --------------------IMPORTS
+        // (No external imports - standalone app)
+
+        // --------------------CONSTANTS & CONFIGURATIONS
+        const ARGS = {
+            APP_NAME: 'Extract Images From HTML',
+            OUTPUT_DESCRIPTION: 'Extract Images From HTML',
+            MAX_FILENAME_LENGTH: 80,
+            MAX_PATH_LENGTH: 200,
+            TIMESTAMP_FORMAT: '[YYMMDDhhmm]',
+            ALLOWED_IMAGE_EXTENSIONS: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico', '.tiff', '.tif'],
+            USER_AGENT: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            DOWNLOAD_TIMEOUT: 30000,
+            MAX_CONCURRENT_DOWNLOADS: 5,
+            FILENAME_SANITIZE_PATTERN: /[<>:"/\\|?*\x00-\x1F]/g,
+            COLLAPSE_WHITESPACE_PATTERN: /\s+/g,
+            MIN_FILE_SIZE_KB: 50
+        };
+
+        // --------------------GUI COMPONENTS
+        const elements = {
+            urlInput: document.getElementById('urlInput'),
+            fetchBtn: document.getElementById('fetchBtn'),
+            sourceNameInput: document.getElementById('sourceNameInput'),
+            htmlInput: document.getElementById('htmlInput'),
+            baseUrlInput: document.getElementById('baseUrlInput'),
+            minSizeInput: document.getElementById('minSizeInput'),
+            chkJpg: document.getElementById('chkJpg'),
+            chkPng: document.getElementById('chkPng'),
+            chkWebp: document.getElementById('chkWebp'),
+            chkGif: document.getElementById('chkGif'),
+            chkBmp: document.getElementById('chkBmp'),
+            chkSvg: document.getElementById('chkSvg'),
+            chkIco: document.getElementById('chkIco'),
+            chkTiff: document.getElementById('chkTiff'),
+            extractBtn: document.getElementById('extractBtn'),
+            cancelBtn: document.getElementById('cancelBtn'),
+            clearBtn: document.getElementById('clearBtn'),
+            status: document.getElementById('status'),
+            progressContainer: document.getElementById('progressContainer'),
+            progressFill: document.getElementById('progressFill'),
+            logContainer: document.getElementById('logContainer')
+        };
+
+        let cancelRequested = false;
+        let outputDirHandle = null;
+        let currentRunFolder = '';
+
+        // --------------------MAIN APPLICATION
+
+        // Extract base URL from input URL
+        function extractBaseUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                return urlObj.origin;
+            } catch (e) {
+                // If URL parsing fails, try to extract domain manually
+                const match = url.match(/https?:\/\/([^\/]+)/);
+                if (match) {
+                    return match[0];
+                }
+                return '';
+            }
+        }
+
+        // Extract domain name for source name
+        function extractDomainName(url) {
+            try {
+                const urlObj = new URL(url);
+                return urlObj.hostname.replace(/^www\./, '');
+            } catch (e) {
+                const match = url.match(/https?:\/\/(?:www\.)?([^\/]+)/);
+                if (match) {
+                    return match[1];
+                }
+                return 'website';
+            }
+        }
+
+        // Fetch HTML from URL with CORS proxy fallback
+        async function fetchHtmlFromUrl(url) {
+            // Try direct fetch first
+            try {
+                addLog(`Attempting direct fetch from: ${url}`, 'info');
+                const response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'cors',
+                    credentials: 'omit',
+                    headers: {
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'User-Agent': ARGS.USER_AGENT
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const html = await response.text();
+                addLog(`✓ Successfully fetched HTML (${(html.length / 1024).toFixed(2)} KB)`, 'success');
+                return html;
+            } catch (e) {
+                addLog(`Direct fetch failed: ${e.message}`, 'warning');
+                addLog('Trying CORS proxy...', 'info');
+                
+                // Try CORS proxy as fallback
+                const corsProxies = [
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+                ];
+                
+                for (const proxyUrl of corsProxies) {
+                    try {
+                        addLog(`Trying proxy: ${proxyUrl.substring(0, 60)}...`, 'info');
+                        const response = await fetch(proxyUrl, {
+                            method: 'GET',
+                            mode: 'cors',
+                            timeout: ARGS.DOWNLOAD_TIMEOUT
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+                        
+                        const html = await response.text();
+                        
+                        // Check if we got HTML (not an error page)
+                        if (html.length > 100 && (html.includes('<html') || html.includes('<!DOCTYPE'))) {
+                            addLog(`✓ Successfully fetched HTML via proxy (${(html.length / 1024).toFixed(2)} KB)`, 'success');
+                            return html;
+                        } else {
+                            throw new Error('Proxy returned invalid content');
+                        }
+                    } catch (proxyError) {
+                        addLog(`Proxy failed: ${proxyError.message}`, 'warning');
+                        continue;
+                    }
+                }
+                
+                throw new Error('All fetch methods failed. The website may block CORS requests. Try copying HTML manually.');
+            }
+        }
+
+        // Fetch HTML from URL and populate fields
+        async function fetchAndPopulateHtml() {
+            const url = elements.urlInput.value.trim();
+            if (!url) {
+                showStatus('Please enter a URL first.', 'warning');
+                return;
+            }
+            
+            // Validate URL format
+            if (!url.match(/^https?:\/\//i)) {
+                showStatus('Please enter a valid URL starting with http:// or https://', 'warning');
+                return;
+            }
+            
+            elements.fetchBtn.disabled = true;
+            elements.urlInput.disabled = true;
+            elements.logContainer.style.display = 'block';
+            elements.logContainer.innerHTML = '';
+            
+            showStatus('Fetching HTML from URL...', 'info');
+            addLog(`Fetching HTML from: ${url}`, 'info');
+            
+            try {
+                const html = await fetchHtmlFromUrl(url);
+                
+                // Populate HTML textarea
+                elements.htmlInput.value = html;
+                
+                // Auto-fill base URL
+                const baseUrl = extractBaseUrl(url);
+                if (baseUrl && !elements.baseUrlInput.value.trim()) {
+                    elements.baseUrlInput.value = baseUrl;
+                }
+                
+                // Auto-fill source name if empty
+                if (!elements.sourceNameInput.value.trim()) {
+                    const domainName = extractDomainName(url);
+                    elements.sourceNameInput.value = domainName;
+                }
+                
+                showStatus(`Successfully fetched HTML! Found ${html.length} characters.`, 'success');
+                addLog('HTML fetched and populated. You can now extract images.', 'success');
+                
+            } catch (e) {
+                showStatus(`Failed to fetch HTML: ${e.message}`, 'error');
+                addLog(`✗ Error: ${e.message}`, 'error');
+                addLog('Tip: Some websites block CORS requests. Try copying the HTML manually from the browser.', 'warning');
+            } finally {
+                elements.fetchBtn.disabled = false;
+                elements.urlInput.disabled = false;
+            }
+        }
+
+        // Utility: Format timestamp
+        function getTimestamp() {
+            const now = new Date();
+            const yy = String(now.getFullYear()).slice(-2);
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const hh = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            return `[${yy}${mm}${dd}${hh}${min}]`;
+        }
+
+        // Utility: Sanitize filename
+        function sanitizeFilename(filename) {
+            let sanitized = filename
+                .replace(ARGS.FILENAME_SANITIZE_PATTERN, '_')
+                .replace(ARGS.COLLAPSE_WHITESPACE_PATTERN, '_')
+                .replace(/_{2,}/g, '_')
+                .replace(/^_+|_+$/g, '');
+            
+            const lastDot = sanitized.lastIndexOf('.');
+            let name = sanitized;
+            let ext = '';
+            
+            if (lastDot > 0) {
+                name = sanitized.substring(0, lastDot);
+                ext = sanitized.substring(lastDot);
+            }
+            
+            const maxNameLength = ARGS.MAX_FILENAME_LENGTH - ext.length;
+            if (name.length > maxNameLength) {
+                name = name.substring(0, maxNameLength);
+            }
+            
+            return name + ext;
+        }
+
+        // Utility: Generate unique filename
+        function generateUniqueFilename(baseFilename, existingNames) {
+            let filename = baseFilename;
+            let counter = 1;
+            
+            const lastDot = baseFilename.lastIndexOf('.');
+            const name = lastDot > 0 ? baseFilename.substring(0, lastDot) : baseFilename;
+            const ext = lastDot > 0 ? baseFilename.substring(lastDot) : '';
+            
+            while (existingNames.has(filename.toLowerCase())) {
+                filename = `${name}_${counter}${ext}`;
+                counter++;
+            }
+            
+            existingNames.add(filename.toLowerCase());
+            return filename;
+        }
+
+        // Utility: Show status
+        function showStatus(message, type = 'info') {
+            elements.status.textContent = message;
+            elements.status.className = type;
+            elements.status.style.display = 'block';
+        }
+
+        // Utility: Add log entry
+        function addLog(message, type = 'info') {
+            elements.logContainer.style.display = 'block';
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            elements.logContainer.appendChild(entry);
+            elements.logContainer.scrollTop = elements.logContainer.scrollHeight;
+        }
+
+        // Utility: Update progress
+        function updateProgress(current, total) {
+            const percent = Math.round((current / total) * 100);
+            elements.progressFill.style.width = `${percent}%`;
+            elements.progressFill.textContent = `${percent}% (${current}/${total})`;
+        }
+
+        // Get allowed file types from checkboxes
+        function getAllowedFileTypes() {
+            const allowed = [];
+            if (elements.chkJpg.checked) allowed.push('.jpg', '.jpeg');
+            if (elements.chkPng.checked) allowed.push('.png');
+            if (elements.chkWebp.checked) allowed.push('.webp');
+            if (elements.chkGif.checked) allowed.push('.gif');
+            if (elements.chkBmp.checked) allowed.push('.bmp');
+            if (elements.chkSvg.checked) allowed.push('.svg');
+            if (elements.chkIco.checked) allowed.push('.ico');
+            if (elements.chkTiff.checked) allowed.push('.tiff', '.tif');
+            return allowed.map(ext => ext.toLowerCase());
+        }
+
+        // Extract highest resolution URL from srcset
+        function extractBestSrcsetUrl(srcset) {
+            if (!srcset) return null;
+            
+            const sources = srcset.split(',').map(s => {
+                const parts = s.trim().split(/\s+/);
+                const url = parts[0];
+                const descriptor = parts[1] || '';
+                
+                // Handle width descriptors (e.g., "800w")
+                let width = 0;
+                if (descriptor.endsWith('w')) {
+                    width = parseInt(descriptor) || 0;
+                }
+                // Handle density descriptors (e.g., "1x", "2x")
+                else if (descriptor.endsWith('x')) {
+                    const density = parseFloat(descriptor) || 1;
+                    // Extract width from URL if possible (e.g., ?w=1200)
+                    const widthMatch = url.match(/[?&]w=(\d+)/);
+                    if (widthMatch) {
+                        width = parseInt(widthMatch[1]) * density;
+                    } else {
+                        width = density * 1000; // Approximate: prefer higher density
+                    }
+                }
+                // Try to extract width from URL
+                else {
+                    const widthMatch = url.match(/[?&]w=(\d+)/);
+                    if (widthMatch) {
+                        width = parseInt(widthMatch[1]);
+                    }
+                }
+                
+                return { url, width, descriptor };
+            });
+            
+            // Sort by width descending and return the largest
+            sources.sort((a, b) => b.width - a.width);
+            return sources.length > 0 ? sources[0].url : null;
+        }
+        
+        // Check if URL is a thumbnail or placeholder
+        function isThumbnailOrPlaceholder(url) {
+            if (!url) return true;
+            // Skip data: URLs that are placeholders (1x1 transparent gif)
+            if (url.startsWith('data:image/gif')) return true;
+            // Check for thumbnail/placeholder indicators in query params
+            const widthMatch = url.match(/[?&]w=(\d+)/);
+            if (widthMatch) {
+                const width = parseInt(widthMatch[1]);
+                // Consider w=220 or less as thumbnail, w=0 as placeholder
+                // Keep w=1200+ as full-size images
+                if (width > 0 && width <= 220) return true; // Thumbnail
+                if (width === 0) return true; // Placeholder
+            }
+            // If no width parameter, assume it's a valid image (don't filter)
+            return false;
+        }
+        
+        // Extract base URL without query parameters for deduplication
+        function getBaseUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                return urlObj.origin + urlObj.pathname;
+            } catch (e) {
+                return url.split('?')[0].split('#')[0];
+            }
+        }
+        
+        // Extract width from URL query parameters
+        function getUrlWidth(url) {
+            const widthMatch = url.match(/[?&]w=(\d+)/);
+            return widthMatch ? parseInt(widthMatch[1]) : 0;
+        }
+        
+        // Get quality parameter from URL
+        function getUrlQuality(url) {
+            const qualityMatch = url.match(/[?&]q=(\d+)/);
+            return qualityMatch ? parseInt(qualityMatch[1]) : 0;
+        }
+        
+        // Get DPR (device pixel ratio) from URL
+        function getUrlDpr(url) {
+            const dprMatch = url.match(/[?&]dpr=(\d+)/);
+            return dprMatch ? parseInt(dprMatch[1]) : 1;
+        }
+        
+        // Generate optimized URL variations for better quality
+        function generateOptimizedUrls(url) {
+            const variations = [url]; // Always include original
+            
+            try {
+                const urlObj = new URL(url);
+                const params = new URLSearchParams(urlObj.search);
+                
+                // If URL has dimension parameters, try optimizations
+                if (params.has('w') || params.has('h')) {
+                    const currentWidth = parseInt(params.get('w')) || 0;
+                    const currentDpr = parseInt(params.get('dpr')) || 1;
+                    
+                    // Try higher DPR if current is 1
+                    if (currentDpr === 1 && params.has('dpr')) {
+                        const highDprParams = new URLSearchParams(params);
+                        highDprParams.set('dpr', '2');
+                        variations.push(urlObj.origin + urlObj.pathname + '?' + highDprParams.toString());
+                    }
+                    
+                    // Try removing dimension constraints to get original
+                    const noDimsParams = new URLSearchParams(params);
+                    if (noDimsParams.has('w')) noDimsParams.set('w', '0');
+                    if (noDimsParams.has('h')) noDimsParams.set('h', '0');
+                    variations.push(urlObj.origin + urlObj.pathname + '?' + noDimsParams.toString());
+                    
+                    // Try common higher resolutions
+                    if (currentWidth > 0 && currentWidth < 3840) {
+                        const higherResolutions = [1920, 2400, 3840];
+                        for (const res of higherResolutions) {
+                            if (res > currentWidth) {
+                                const highResParams = new URLSearchParams(params);
+                                highResParams.set('w', res.toString());
+                                variations.push(urlObj.origin + urlObj.pathname + '?' + highResParams.toString());
+                            }
+                        }
+                    }
+                    
+                    // Try maximum quality
+                    if (params.has('q')) {
+                        const maxQualityParams = new URLSearchParams(params);
+                        maxQualityParams.set('q', '100');
+                        variations.push(urlObj.origin + urlObj.pathname + '?' + maxQualityParams.toString());
+                    }
+                    
+                    // Try no query parameters at all (original image)
+                    variations.push(urlObj.origin + urlObj.pathname);
+                }
+            } catch (e) {
+                // If URL parsing fails, just return original
+            }
+            
+            return variations;
+        }
+        
+        // Deduplicate URLs and keep the best version of each image
+        function deduplicateUrls(urls) {
+            const baseUrlMap = new Map();
+            
+            urls.forEach(url => {
+                const baseUrl = getBaseUrl(url);
+                
+                if (!baseUrlMap.has(baseUrl)) {
+                    baseUrlMap.set(baseUrl, []);
+                }
+                baseUrlMap.get(baseUrl).push(url);
+            });
+            
+            // For each base URL, pick the best version
+            const bestUrls = [];
+            baseUrlMap.forEach((variants, baseUrl) => {
+                // Score each variant
+                const scored = variants.map(url => {
+                    const width = getUrlWidth(url);
+                    const quality = getUrlQuality(url);
+                    const dpr = getUrlDpr(url);
+                    
+                    // Calculate score: prefer higher width, quality, and dpr
+                    // Give bonus to URLs without parameters (might be original)
+                    const hasParams = url.includes('?');
+                    const score = (width * dpr * 10) + (quality * 5) + (hasParams ? 0 : 10000);
+                    
+                    return { url, score, width, quality, dpr };
+                });
+                
+                // Sort by score descending and take the best
+                scored.sort((a, b) => b.score - a.score);
+                bestUrls.push(scored[0].url);
+            });
+            
+            return bestUrls;
+        }
+
+        // Recursively extract image URLs from JSON structures
+        function extractImagesFromJson(obj, imageUrls) {
+            if (!obj) return;
+            
+            // Handle arrays
+            if (Array.isArray(obj)) {
+                obj.forEach(item => extractImagesFromJson(item, imageUrls));
+                return;
+            }
+            
+            // Handle objects
+            if (typeof obj === 'object') {
+                // Check for common image properties
+                const imageProps = ['image', 'url', 'contentUrl', 'thumbnailUrl', 'logo', 'photo', 'picture', 'avatar'];
+                imageProps.forEach(prop => {
+                    if (obj[prop]) {
+                        const value = obj[prop];
+                        if (typeof value === 'string' && (value.startsWith('http') || value.startsWith('//'))) {
+                            imageUrls.add(value);
+                        } else if (typeof value === 'object') {
+                            extractImagesFromJson(value, imageUrls);
+                        }
+                    }
+                });
+                
+                // Recursively process all properties
+                Object.values(obj).forEach(value => {
+                    if (typeof value === 'object') {
+                        extractImagesFromJson(value, imageUrls);
+                    } else if (typeof value === 'string' && value.match(/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|bmp|svg)/i)) {
+                        imageUrls.add(value);
+                    }
+                });
+            }
+        }
+        
+        // Extract image URLs from HTML with comprehensive detection
+        function extractImageUrls(htmlContent, baseUrl) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            const imageUrls = new Set();
+            
+            // Extract from <img> tags - comprehensive attribute checking
+            const imgTags = doc.querySelectorAll('img');
+            imgTags.forEach(img => {
+                // Check multiple src attributes (prioritize data-* attributes as they often contain full-size images)
+                const srcAttrs = ['data-src', 'data-lazy-src', 'data-original', 'data-srcset', 'data-thumbnail-src', 'src'];
+                srcAttrs.forEach(attr => {
+                    const value = img.getAttribute(attr);
+                    if (value && !value.startsWith('data:image/svg+xml')) {
+                        if (attr === 'data-srcset') {
+                            const bestUrl = extractBestSrcsetUrl(value);
+                            if (bestUrl && !isThumbnailOrPlaceholder(bestUrl)) {
+                                imageUrls.add(bestUrl);
+                            }
+                        } else if (attr === 'data-thumbnail-src') {
+                            // Only add thumbnail if it's not obviously a thumbnail (might be the only version)
+                            if (!isThumbnailOrPlaceholder(value)) {
+                                imageUrls.add(value);
+                            }
+                        } else {
+                            // Filter out placeholders and thumbnails
+                            if (!isThumbnailOrPlaceholder(value)) {
+                                imageUrls.add(value);
+                            }
+                        }
+                    }
+                });
+                
+                // Handle srcset attribute
+                const srcset = img.getAttribute('srcset');
+                if (srcset) {
+                    const bestUrl = extractBestSrcsetUrl(srcset);
+                    if (bestUrl && !isThumbnailOrPlaceholder(bestUrl)) {
+                        imageUrls.add(bestUrl);
+                    }
+                }
+            });
+            
+            // Extract from data-component attributes (flip images, etc.)
+            const allElements = doc.querySelectorAll('*');
+            allElements.forEach(el => {
+                // Check data-component-front and data-component-back
+                const front = el.getAttribute('data-component-front');
+                const back = el.getAttribute('data-component-back');
+                if (front && !isThumbnailOrPlaceholder(front)) imageUrls.add(front);
+                if (back && !isThumbnailOrPlaceholder(back)) imageUrls.add(back);
+                
+                // Check data-src first (might be full-size)
+                const dataSrc = el.getAttribute('data-src');
+                if (dataSrc && !dataSrc.startsWith('data:image/svg+xml') && !isThumbnailOrPlaceholder(dataSrc)) {
+                    imageUrls.add(dataSrc);
+                }
+                
+                // Check data-thumbnail-src only if we don't have a better version
+                // (We'll add it later if no full-size version exists)
+                const thumbnail = el.getAttribute('data-thumbnail-src');
+                if (thumbnail && !isThumbnailOrPlaceholder(thumbnail)) {
+                    imageUrls.add(thumbnail);
+                }
+                
+                // Extract from CSS background-image in style attribute
+                const style = el.getAttribute('style');
+                if (style) {
+                    const bgImageMatch = style.match(/background-image:\s*url\(['"]?(.*?)['"]?\)/i);
+                    if (bgImageMatch && bgImageMatch[1] && !bgImageMatch[1].startsWith('data:image/svg+xml') && !isThumbnailOrPlaceholder(bgImageMatch[1])) {
+                        imageUrls.add(bgImageMatch[1]);
+                    }
+                }
+            });
+            
+            // Extract from <style> tags
+            const styleTags = doc.querySelectorAll('style');
+            styleTags.forEach(styleTag => {
+                const cssText = styleTag.textContent;
+                const urlMatches = cssText.matchAll(/url\(['"]?(.*?)['"]?\)/gi);
+                for (const match of urlMatches) {
+                    if (match[1] && !match[1].startsWith('data:image/svg+xml')) {
+                        imageUrls.add(match[1]);
+                    }
+                }
+            });
+            
+            // Extract from <picture> and <source> tags - prioritize these for full-size images
+            const sourceTags = doc.querySelectorAll('source');
+            sourceTags.forEach(source => {
+                // Prioritize data-srcset (often contains full-size images)
+                const dataSrcset = source.getAttribute('data-srcset');
+                if (dataSrcset) {
+                    const bestUrl = extractBestSrcsetUrl(dataSrcset);
+                    if (bestUrl && !isThumbnailOrPlaceholder(bestUrl)) {
+                        imageUrls.add(bestUrl);
+                    }
+                }
+                
+                // Also check regular srcset
+                const srcset = source.getAttribute('srcset');
+                if (srcset) {
+                    const bestUrl = extractBestSrcsetUrl(srcset);
+                    if (bestUrl && !isThumbnailOrPlaceholder(bestUrl)) {
+                        imageUrls.add(bestUrl);
+                    }
+                }
+                
+                // Check src attributes (lower priority)
+                const src = source.getAttribute('src') || source.getAttribute('data-src');
+                if (src && !src.startsWith('data:image/svg+xml') && !isThumbnailOrPlaceholder(src)) {
+                    imageUrls.add(src);
+                }
+            });
+            
+            // Extract from <link> tags with rel="image_src" or similar
+            const linkTags = doc.querySelectorAll('link[rel*="image"], link[rel*="icon"]');
+            linkTags.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && !href.startsWith('data:image/svg+xml')) {
+                    imageUrls.add(href);
+                }
+            });
+            
+            // Extract from meta tags (og:image, twitter:image, etc.)
+            const metaTags = doc.querySelectorAll('meta[property*="image"], meta[name*="image"]');
+            metaTags.forEach(meta => {
+                const content = meta.getAttribute('content');
+                if (content && !content.startsWith('data:image/svg+xml')) {
+                    imageUrls.add(content);
+                }
+            });
+            
+            // Extract from JSON-LD structured data
+            const jsonLdScripts = doc.querySelectorAll('script[type="application/ld+json"]');
+            jsonLdScripts.forEach(script => {
+                try {
+                    const jsonData = JSON.parse(script.textContent);
+                    extractImagesFromJson(jsonData, imageUrls);
+                } catch (e) {
+                    // Invalid JSON, skip
+                }
+            });
+            
+            // Extract from inline JavaScript objects (e.g., window.__DATA__)
+            const allScripts = doc.querySelectorAll('script:not([src])');
+            allScripts.forEach(script => {
+                const content = script.textContent;
+                // Look for URL patterns in JavaScript
+                const urlPattern = /https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)(?:\?[^\s"'<>]*)?/gi;
+                const matches = content.match(urlPattern);
+                if (matches) {
+                    matches.forEach(url => {
+                        if (!url.startsWith('data:image/svg+xml') && !isThumbnailOrPlaceholder(url)) {
+                            imageUrls.add(url);
+                        }
+                    });
+                }
+            });
+            
+            // Resolve relative URLs
+            const resolvedUrlsRaw = [];
+            imageUrls.forEach(url => {
+                try {
+                    // Skip data URLs except for images
+                    if (url.startsWith('data:')) {
+                        if (url.match(/^data:image\/(jpeg|jpg|png|gif|webp|bmp)/i)) {
+                            resolvedUrlsRaw.push(url);
+                        }
+                    } else if (url.startsWith('//')) {
+                        resolvedUrlsRaw.push('https:' + url);
+                    } else if (url.startsWith('http://') || url.startsWith('https://')) {
+                        resolvedUrlsRaw.push(url);
+                    } else if (baseUrl) {
+                        const absoluteUrl = new URL(url, baseUrl).href;
+                        resolvedUrlsRaw.push(absoluteUrl);
+                    } else {
+                        resolvedUrlsRaw.push(url);
+                    }
+                } catch (e) {
+                    addLog(`Failed to resolve URL: ${url.substring(0, 100)}... - ${e.message}`, 'warning');
+                }
+            });
+            
+            // Deduplicate URLs and keep the best version of each
+            const deduplicatedUrls = deduplicateUrls(resolvedUrlsRaw);
+            
+            // Convert to object format with isDataUrl flag
+            const resolvedUrls = deduplicatedUrls.map(url => ({
+                url: url,
+                isDataUrl: url.startsWith('data:'),
+                variations: generateOptimizedUrls(url)
+            }));
+            
+            return resolvedUrls;
+        }
+
+        // Download image with retry and smart fallback to variations
+        async function downloadImage(imageUrl, isDataUrl, variations = [], retries = 3) {
+            if (isDataUrl) {
+                try {
+                    const response = await fetch(imageUrl);
+                    const blob = await response.blob();
+                    return { blob, actualUrl: imageUrl };
+                } catch (e) {
+                    throw new Error(`Data URL fetch failed: ${e.message}`);
+                }
+            }
+            
+            // Try original URL first, then variations
+            const urlsToTry = [imageUrl, ...variations.filter(v => v !== imageUrl)];
+            let lastError = null;
+            
+            for (const url of urlsToTry) {
+                for (let attempt = 1; attempt <= retries; attempt++) {
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), ARGS.DOWNLOAD_TIMEOUT);
+                        
+                        const response = await fetch(url, {
+                            signal: controller.signal,
+                            mode: 'cors',
+                            cache: 'no-cache'
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        
+                        const blob = await response.blob();
+                        
+                        // Verify it's actually an image
+                        if (!blob.type.startsWith('image/') && blob.size < 100) {
+                            throw new Error('Response is not a valid image');
+                        }
+                        
+                        return { blob, actualUrl: url };
+                    } catch (e) {
+                        lastError = e;
+                        if (attempt < retries) {
+                            await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+                        }
+                    }
+                }
+                // If all retries failed for this URL, try next variation
+            }
+            
+            // All URLs failed
+            throw lastError || new Error('All URL variations failed');
+        }
+
+        // Get file extension from URL or blob
+        function getFileExtension(url, blob) {
+            // Try from blob type
+            if (blob && blob.type) {
+                const mimeToExt = {
+                    'image/jpeg': '.jpg',
+                    'image/jpg': '.jpg',
+                    'image/png': '.png',
+                    'image/gif': '.gif',
+                    'image/webp': '.webp',
+                    'image/svg+xml': '.svg',
+                    'image/bmp': '.bmp',
+                    'image/x-icon': '.ico',
+                    'image/vnd.microsoft.icon': '.ico',
+                    'image/tiff': '.tiff'
+                };
+                if (mimeToExt[blob.type]) {
+                    return mimeToExt[blob.type];
+                }
+            }
+            
+            // Try from URL
+            try {
+                const urlObj = new URL(url);
+                const pathname = urlObj.pathname;
+                const ext = pathname.substring(pathname.lastIndexOf('.')).toLowerCase();
+                if (ARGS.ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
+                    return ext;
+                }
+            } catch (e) {
+                // Invalid URL
+            }
+            
+            // Default
+            return '.jpg';
+        }
+
+        // Generate filename from URL
+        function generateFilenameFromUrl(url, index) {
+            try {
+                if (url.startsWith('data:')) {
+                    return `data_image_${index}`;
+                }
+                
+                const urlObj = new URL(url);
+                const pathname = urlObj.pathname;
+                const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
+                
+                if (filename && filename.length > 0) {
+                    // Remove query params but keep extension
+                    return filename.split('?')[0];
+                }
+                
+                return `image_${index}`;
+            } catch (e) {
+                return `image_${index}`;
+            }
+        }
+
+        // Save file using File System Access API
+        async function saveFileWithFSA(dirHandle, filename, blob) {
+            const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+        }
+
+        // Save file using fallback (download)
+        function saveFileWithFallback(filename, blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Check File System Access API support
+        function supportsFSA() {
+            return 'showDirectoryPicker' in window;
+        }
+
+        // Main extraction and download process
+        async function extractAndDownloadImages() {
+            const htmlContent = elements.htmlInput.value.trim();
+            if (!htmlContent) {
+                showStatus('Please paste HTML content first.', 'warning');
+                return;
+            }
+            
+            const baseUrl = elements.baseUrlInput.value.trim() || null;
+            const sourceName = elements.sourceNameInput.value.trim() || 'input';
+            const minSizeKB = parseFloat(elements.minSizeInput.value) || 0;
+            const minSizeBytes = minSizeKB * 1024;
+            const allowedTypes = getAllowedFileTypes();
+            
+            if (allowedTypes.length === 0) {
+                showStatus('Please select at least one file type to keep.', 'warning');
+                return;
+            }
+            
+            cancelRequested = false;
+            elements.extractBtn.disabled = true;
+            elements.cancelBtn.disabled = false;
+            elements.logContainer.innerHTML = '';
+            elements.logContainer.style.display = 'block';
+            elements.progressContainer.style.display = 'block';
+            
+            const timestamp = getTimestamp();
+            currentRunFolder = `${timestamp} - ${ARGS.OUTPUT_DESCRIPTION} - (${sanitizeFilename(sourceName)})`;
+            
+            addLog('Starting image extraction...', 'info');
+            addLog(`Filters: Min size ${minSizeKB} KB, Types: ${allowedTypes.join(', ')}`, 'info');
+            
+            try {
+                // Extract image URLs
+                const imageData = extractImageUrls(htmlContent, baseUrl);
+                addLog(`Found ${imageData.length} potential image(s) in HTML`, 'success');
+                
+                if (imageData.length === 0) {
+                    showStatus('No images found in the HTML content.', 'warning');
+                    return;
+                }
+                
+                // Setup output directory
+                let useFSA = false;
+                let runDirHandle = null;
+                
+                if (supportsFSA()) {
+                    try {
+                        showStatus('Please select or create the "_Output_Log" directory...', 'info');
+                        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                        
+                        // Create run folder
+                        runDirHandle = await dirHandle.getDirectoryHandle(currentRunFolder, { create: true });
+                        useFSA = true;
+                        addLog(`Output directory created: ${currentRunFolder}`, 'success');
+                    } catch (e) {
+                        if (e.name === 'AbortError') {
+                            showStatus('Directory selection cancelled.', 'warning');
+                            return;
+                        }
+                        addLog(`File System Access API not available: ${e.message}`, 'warning');
+                        addLog('Falling back to manual save dialogs...', 'info');
+                    }
+                }
+                
+                if (!useFSA) {
+                    showStatus(`Please save each file to: ${currentRunFolder}`, 'warning');
+                    addLog('IMPORTANT: Create the run folder and save all files into it manually.', 'warning');
+                }
+                
+                // Download and filter images
+                const results = {
+                    total: imageData.length,
+                    successful: 0,
+                    failed: 0,
+                    skipped: 0,
+                    filtered_size: 0,
+                    filtered_type: 0,
+                    files: []
+                };
+                
+                const existingNames = new Set();
+                updateProgress(0, imageData.length);
+                
+                for (let i = 0; i < imageData.length; i++) {
+                    if (cancelRequested) {
+                        addLog('Download cancelled by user', 'warning');
+                        showStatus('Download cancelled.', 'warning');
+                        break;
+                    }
+                    
+                    const { url, isDataUrl, variations } = imageData[i];
+                    const imageIndex = i + 1;
+                    
+                    addLog(`[${imageIndex}/${imageData.length}] Processing: ${url.substring(0, 100)}...`, 'info');
+                    if (variations && variations.length > 1) {
+                        addLog(`  → ${variations.length} URL variations available`, 'info');
+                    }
+                    
+                    try {
+                        const { blob, actualUrl } = await downloadImage(url, isDataUrl, variations || []);
+                        
+                        // Log if a variation was used
+                        if (actualUrl !== url) {
+                            addLog(`  → Used variation: ${actualUrl.substring(0, 80)}...`, 'info');
+                        }
+                        
+                        // Check file size
+                        if (blob.size < minSizeBytes) {
+                            results.filtered_size++;
+                            addLog(`⊘ Skipped (too small): ${(blob.size / 1024).toFixed(2)} KB < ${minSizeKB} KB`, 'warning');
+                            continue;
+                        }
+                        
+                        // Get file extension
+                        const ext = getFileExtension(actualUrl, blob);
+                        
+                        // Check file type
+                        if (!allowedTypes.includes(ext.toLowerCase())) {
+                            results.filtered_type++;
+                            addLog(`⊘ Skipped (type not allowed): ${ext}`, 'warning');
+                            continue;
+                        }
+                        
+                        // Generate filename from actual URL used
+                        let baseFilename = generateFilenameFromUrl(actualUrl, imageIndex);
+                        
+                        if (!baseFilename.toLowerCase().endsWith(ext.toLowerCase())) {
+                            baseFilename = baseFilename + ext;
+                        }
+                        
+                        const sanitizedFilename = sanitizeFilename(baseFilename);
+                        const uniqueFilename = generateUniqueFilename(sanitizedFilename, existingNames);
+                        
+                        // Save file
+                        if (useFSA) {
+                            await saveFileWithFSA(runDirHandle, uniqueFilename, blob);
+                        } else {
+                            saveFileWithFallback(uniqueFilename, blob);
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                        }
+                        
+                        results.successful++;
+                        results.files.push({
+                            index: imageIndex,
+                            filename: uniqueFilename,
+                            url: url,
+                            actual_url: actualUrl,
+                            size: blob.size,
+                            size_kb: (blob.size / 1024).toFixed(2),
+                            type: blob.type,
+                            extension: ext,
+                            used_variation: actualUrl !== url,
+                            status: 'success'
+                        });
+                        
+                        addLog(`✓ Saved: ${uniqueFilename} (${(blob.size / 1024).toFixed(2)} KB)`, 'success');
+                    } catch (e) {
+                        results.failed++;
+                        results.files.push({
+                            index: imageIndex,
+                            filename: null,
+                            url: url,
+                            variations_tried: variations ? variations.length : 1,
+                            error: e.message,
+                            status: 'failed'
+                        });
+                        
+                        addLog(`✗ Failed: ${e.message}`, 'error');
+                    }
+                    
+                    updateProgress(i + 1, imageData.length);
+                }
+                
+                // Generate summary JSON
+                const summary = {
+                    app_name: ARGS.APP_NAME,
+                    timestamp: timestamp,
+                    run_folder: currentRunFolder,
+                    input_source: sourceName,
+                    base_url: baseUrl,
+                    filters: {
+                        min_size_kb: minSizeKB,
+                        allowed_types: allowedTypes
+                    },
+                    results: results,
+                    execution_time: new Date().toISOString()
+                };
+                
+                const summaryJson = JSON.stringify(summary, null, 2);
+                const summaryBlob = new Blob([summaryJson], { type: 'application/json' });
+                const summaryFilename = `${timestamp}_summary.json`;
+                
+                if (useFSA) {
+                    await saveFileWithFSA(runDirHandle, summaryFilename, summaryBlob);
+                    addLog(`✓ Summary saved: ${summaryFilename}`, 'success');
+                } else {
+                    saveFileWithFallback(summaryFilename, summaryBlob);
+                    addLog(`→ Please save summary as: ${summaryFilename}`, 'warning');
+                }
+                
+                // Final status
+                const statusMsg = `Complete! Success: ${results.successful}, Failed: ${results.failed}, Skipped: ${results.filtered_size + results.filtered_type} (size: ${results.filtered_size}, type: ${results.filtered_type})`;
+                showStatus(statusMsg, results.failed > 0 || results.successful === 0 ? 'warning' : 'success');
+                addLog(statusMsg, 'success');
+                
+            } catch (e) {
+                showStatus(`Error: ${e.message}`, 'error');
+                addLog(`Fatal error: ${e.message}`, 'error');
+                console.error(e);
+            } finally {
+                elements.extractBtn.disabled = false;
+                elements.cancelBtn.disabled = true;
+            }
+        }
+
+        // Event: Fetch button
+        elements.fetchBtn.addEventListener('click', fetchAndPopulateHtml);
+
+        // Event: URL input - allow Enter key to fetch
+        elements.urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                fetchAndPopulateHtml();
+            }
+        });
+
+        // Event: Extract button
+        elements.extractBtn.addEventListener('click', extractAndDownloadImages);
+
+        // Event: Cancel button
+        elements.cancelBtn.addEventListener('click', () => {
+            cancelRequested = true;
+            elements.cancelBtn.disabled = true;
+            showStatus('Cancelling...', 'warning');
+        });
+
+        // Event: Clear button
+        elements.clearBtn.addEventListener('click', () => {
+            elements.urlInput.value = '';
+            elements.htmlInput.value = '';
+            elements.baseUrlInput.value = '';
+            elements.sourceNameInput.value = '';
+            elements.minSizeInput.value = '50';
+            elements.chkJpg.checked = true;
+            elements.chkPng.checked = true;
+            elements.chkWebp.checked = true;
+            elements.chkGif.checked = false;
+            elements.chkBmp.checked = false;
+            elements.chkSvg.checked = false;
+            elements.chkIco.checked = false;
+            elements.chkTiff.checked = false;
+            elements.logContainer.innerHTML = '';
+            elements.logContainer.style.display = 'none';
+            elements.progressContainer.style.display = 'none';
+            elements.status.style.display = 'none';
+            showStatus('Cleared.', 'info');
+            setTimeout(() => {
+                elements.status.style.display = 'none';
+            }, 2000);
+        });
+
+        // Initial status
+        showStatus('Ready. Enter a URL and click "Fetch HTML", or paste HTML content directly, then click "Extract & Download Images".', 'info');
+    </script>
+</body>
+</html>
