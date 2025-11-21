@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON to Obsidian Converter v3.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        :root { --accent: #4f46e5; --accent-hover: #4338ca; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        code, pre, textarea { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-slate-900">
+
+    <!-- HEADER -->
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex-shrink-0 z-10 shadow-sm">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                    </svg>
+                    JSON to Obsidian <span class="text-slate-400 font-normal">v3.1</span>
+                </h1>
+            </div>
+            <div class="text-xs text-slate-500 font-mono">
+                Cluster Mode (Sandbox Safe)
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-grow flex overflow-hidden max-w-7xl mx-auto w-full p-4 gap-4">
+        
+        <!-- LEFT PANEL: INPUT -->
+        <section class="flex-1 flex flex-col min-w-0 bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+            <!-- Toolbar -->
+            <div class="px-4 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <label class="text-xs font-bold text-slate-700 uppercase tracking-wide">Input JSON</label>
+                <div class="flex gap-2">
+                    <button id="btnLoadSample" class="px-3 py-1 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded hover:bg-slate-50 transition">Load Sample</button>
+                    <button id="btnClear" class="px-3 py-1 text-xs font-medium text-red-600 bg-white border border-red-200 rounded hover:bg-red-50 transition">Clear</button>
+                </div>
+            </div>
+            
+            <!-- Textarea -->
+            <div class="flex-grow relative">
+                <textarea id="jsonInput" class="absolute inset-0 w-full h-full p-4 text-xs leading-relaxed resize-none outline-none focus:bg-indigo-50/30 transition custom-scrollbar" placeholder='Paste your JSON structure here...' spellcheck="false"></textarea>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="p-4 border-t border-slate-100 bg-slate-50 flex gap-3">
+                <button id="btnParse" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 font-semibold rounded shadow-sm hover:bg-slate-50 hover:text-indigo-600 transition flex justify-center items-center gap-2 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh Preview
+                </button>
+                <button id="btnSave" class="flex-[2] px-4 py-2 bg-indigo-600 text-white font-semibold rounded shadow-sm hover:bg-indigo-700 transition flex justify-center items-center gap-2 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                    </svg>
+                    Save Output to Folder
+                </button>
+            </div>
+        </section>
+
+        <!-- RIGHT PANEL: PREVIEW -->
+        <section class="flex-1 flex flex-col min-w-0 bg-slate-100 rounded-lg border border-slate-200 shadow-inner overflow-hidden">
+            <!-- Status Header -->
+            <div class="px-4 py-3 border-b border-slate-200 flex justify-between items-center bg-slate-100/50 backdrop-blur">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-700 uppercase tracking-wide">Live Preview</span>
+                    <span id="fileCountBadge" class="hidden px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 text-[10px] font-bold">0</span>
+                </div>
+                <span id="statusText" class="text-[10px] font-mono text-slate-400">Waiting for input...</span>
+            </div>
+
+            <!-- Preview Container -->
+            <div id="previewContainer" class="flex-grow overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                <!-- Empty State -->
+                <div id="emptyState" class="h-full flex flex-col items-center justify-center text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-3 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p class="text-sm">Enter valid JSON to see generated Markdown files.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- CONSTANTS ---
+        const APP_NAME = "JSON To Obsidian Atom Converter";
+        
+        // --- DOM ELEMENTS ---
+        const els = {
+            input: document.getElementById('jsonInput'),
+            btnLoad: document.getElementById('btnLoadSample'),
+            btnClear: document.getElementById('btnClear'),
+            btnParse: document.getElementById('btnParse'),
+            btnSave: document.getElementById('btnSave'),
+            previewContainer: document.getElementById('previewContainer'),
+            emptyState: document.getElementById('emptyState'),
+            statusText: document.getElementById('statusText'),
+            fileCountBadge: document.getElementById('fileCountBadge')
+        };
+
+        // --- CORE GENERATOR LOGIC ---
+        
+        function parseAndGenerate(jsonString, isSaving) {
+            if (!jsonString.trim()) {
+                return { success: false, error: "Empty input" };
+            }
+
+            let data;
+            try {
+                data = JSON.parse(jsonString);
+            } catch (e) {
+                return { success: false, error: `Invalid JSON: ${e.message}` };
+            }
+
+            // Validate Schema
+            if (!data.metadata || !data.clusters) {
+                return { success: false, error: "Schema mismatch: Missing 'metadata' or 'clusters'." };
+            }
+
+            const files = [];
+            const metadata = data.metadata;
+            const clusters = Array.isArray(data.clusters) ? data.clusters : [];
+            
+            // Prepare Dates
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+            const isoStr = dateStr + " " + now.toTimeString().split(' ')[0]; // YYYY-MM-DD HH:mm:ss
+            
+            const lang = metadata.source_language || 'en';
+            const sourceRef = (metadata.source_ref || 'unknown').replace(/"/g, '\\"');
+            
+            // ITERATE CLUSTERS (One file per cluster)
+            clusters.forEach(cluster => {
+                const clusterTitle = (cluster.cluster_title || 'Untitled').replace(/"/g, '\\"');
+                const context = (cluster.cluster_context || '').replace(/"/g, '\\"');
+                
+                // Title Format: kA{lang} - {cluster_title}
+                const fullTitle = `kA${lang} - ${clusterTitle}`;
+                
+                // 1. Parse References into Map: ID -> Array of Ref Strings
+                const refMap = {};
+                if (Array.isArray(cluster.references)) {
+                    cluster.references.forEach(refObj => {
+                        // Expecting object: { "Citation text": 1 }
+                        const entries = Object.entries(refObj);
+                        if (entries.length > 0) {
+                            const [refText, refId] = entries[0];
+                            if (!refMap[refId]) refMap[refId] = [];
+                            refMap[refId].push(refText);
+                        }
+                    });
+                }
+
+                // 2. Build Body Points
+                let bodyContent = "";
+                if (Array.isArray(cluster.cluster_points)) {
+                    cluster.cluster_points.forEach(pointObj => {
+                        // Expecting object: { "Point text": 1 }
+                        const entries = Object.entries(pointObj);
+                        if (entries.length > 0) {
+                            const [pointText, pointId] = entries[0];
+                            
+                            // Start bullet point
+                            let line = `- ${pointText}`;
+                            
+                            // Append matching references
+                            if (refMap[pointId]) {
+                                refMap[pointId].forEach(r => {
+                                    line += ` ^[${r}]`;
+                                });
+                            }
+                            
+                            bodyContent += line + "\n";
+                        }
+                    });
+                }
+
+                // 3. Construct Markdown
+                const md = `---
+z-system: "[[z-system - knowledge]]"
+z-form: "[[z-form - atom]]"
+language: "[[language - ${lang}]]"
+date: "${dateStr}"
+updated: "${isoStr}"
+title: "${fullTitle}"
+source_ref: "${sourceRef}"
+context: "${context}"
+---
+
+${bodyContent}`;
+
+                // 4. Build Filename
+                const filenameClean = fullTitle.replace(/[:/\\?*<>|"]/g, '').trim() + ".md";
+
+                files.push({
+                    name: filenameClean,
+                    content: md,
+                    type: 'markdown'
+                });
+            });
+
+            // Decide Source Name for Folder
+            let sourceName = metadata.source_ref || metadata.source_title || "Unknown_Source";
+            sourceName = sourceName.replace(/[:/\\?*<>|"]/g, '_').trim();
+
+            // Add Summary JSON *ONLY* if saving
+            if (isSaving) {
+                const summary = {
+                    run_date: new Date().toISOString(),
+                    app_name: APP_NAME,
+                    input_metadata: metadata,
+                    total_files: files.length,
+                    file_list: files.map(f => f.name)
+                };
+                files.push({
+                    name: '_run_summary.json',
+                    content: JSON.stringify(summary, null, 2),
+                    type: 'json'
+                });
+            }
+
+            return { success: true, files, sourceName };
+        }
+
+        // --- UI RENDERING ---
+
+        function renderPreview() {
+            const raw = els.input.value;
+            els.previewContainer.innerHTML = '';
+            els.fileCountBadge.classList.add('hidden');
+            
+            const result = parseAndGenerate(raw, false);
+
+            if (!result.success) {
+                if (result.error === "Empty input") {
+                    els.statusText.textContent = "Waiting for input...";
+                    els.statusText.className = "text-[10px] font-mono text-slate-400";
+                    els.previewContainer.appendChild(els.emptyState);
+                } else {
+                    els.statusText.textContent = "Parse Error";
+                    els.statusText.className = "text-[10px] font-mono text-red-500 font-bold";
+                    renderError(result.error);
+                }
+                return;
+            }
+
+            if (result.files.length === 0) {
+                els.statusText.textContent = "No Clusters Found";
+                els.statusText.className = "text-[10px] font-mono text-amber-500 font-bold";
+                renderMessage("Valid JSON structure found, but no clusters were generated.");
+                return;
+            }
+
+            els.statusText.textContent = "Ready to Save";
+            els.statusText.className = "text-[10px] font-mono text-green-600 font-bold";
+            els.fileCountBadge.textContent = `${result.files.length}`;
+            els.fileCountBadge.classList.remove('hidden');
+
+            result.files.forEach(file => {
+                const card = createFileCard(file);
+                els.previewContainer.appendChild(card);
+            });
+        }
+
+        function renderError(msg) {
+            const div = document.createElement('div');
+            div.className = "bg-red-50 border border-red-200 rounded p-4 text-xs text-red-600 font-mono break-words";
+            div.innerHTML = `<strong>Error:</strong> ${msg}`;
+            els.previewContainer.appendChild(div);
+        }
+
+        function renderMessage(msg) {
+            const div = document.createElement('div');
+            div.className = "bg-amber-50 border border-amber-200 rounded p-4 text-xs text-amber-700 font-mono text-center";
+            div.textContent = msg;
+            els.previewContainer.appendChild(div);
+        }
+
+        function createFileCard(file) {
+            const card = document.createElement('div');
+            card.className = "bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col overflow-hidden transition hover:shadow-md group";
+
+            const header = document.createElement('div');
+            header.className = "bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center";
+            
+            const titleGroup = document.createElement('div');
+            titleGroup.className = "flex items-center gap-2 min-w-0";
+            
+            const icon = document.createElement('span');
+            icon.className = "text-[10px] font-bold px-1.5 rounded bg-indigo-100 text-indigo-700 border border-indigo-200 flex-shrink-0";
+            icon.textContent = "MD";
+
+            const title = document.createElement('span');
+            title.className = "text-xs font-semibold text-slate-700 truncate select-all";
+            title.textContent = file.name;
+
+            titleGroup.appendChild(icon);
+            titleGroup.appendChild(title);
+
+            const copyNameBtn = document.createElement('button');
+            copyNameBtn.className = "ml-2 text-[10px] text-slate-400 hover:text-indigo-600 transition opacity-0 group-hover:opacity-100";
+            copyNameBtn.textContent = "Copy Name";
+            copyNameBtn.onclick = () => copyText(file.name, copyNameBtn);
+
+            header.appendChild(titleGroup);
+            header.appendChild(copyNameBtn);
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = "relative bg-white";
+
+            const pre = document.createElement('pre');
+            pre.className = "p-3 text-[11px] text-slate-600 whitespace-pre-wrap break-words leading-relaxed max-h-64 overflow-y-auto custom-scrollbar";
+            pre.textContent = file.content;
+
+            const copyContentBtn = document.createElement('button');
+            copyContentBtn.className = "absolute top-2 right-2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition hover:bg-slate-700 shadow-lg";
+            copyContentBtn.textContent = "Copy Content";
+            copyContentBtn.onclick = () => copyText(file.content, copyContentBtn);
+
+            contentDiv.appendChild(pre);
+            contentDiv.appendChild(copyContentBtn);
+
+            card.appendChild(header);
+            card.appendChild(contentDiv);
+
+            return card;
+        }
+
+        // --- FIXED COPY FUNCTION ---
+        async function copyText(text, btnElement) {
+            try {
+                // Fallback method using textarea which works reliably in sandboxed iframes
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                
+                // Ensure it's not visible but part of DOM
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                textArea.style.top = "0";
+                document.body.appendChild(textArea);
+                
+                textArea.focus();
+                textArea.select();
+                
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                if (!successful) throw new Error('execCommand failed');
+
+                const originalText = btnElement.textContent;
+                btnElement.textContent = "Copied!";
+                btnElement.classList.add('text-green-500');
+                setTimeout(() => {
+                    btnElement.textContent = originalText;
+                    btnElement.classList.remove('text-green-500');
+                }, 1500);
+            } catch (err) {
+                console.error('Copy failed', err);
+                btnElement.textContent = "Error";
+                btnElement.classList.add('text-red-500');
+            }
+        }
+
+        // --- SAVE LOGIC ---
+
+        async function handleSave() {
+            const raw = els.input.value;
+            const result = parseAndGenerate(raw, true);
+
+            if (!result.success || result.files.length === 0) {
+                alert("Nothing to save. Please check errors in preview.");
+                return;
+            }
+
+            const timestamp = getTimestamp();
+            const folderName = `[${timestamp}] - ${APP_NAME} - (${result.sourceName})`;
+
+            // FIX: Try File System Access, but fallback gracefully on error
+            if (window.showDirectoryPicker) {
+                try {
+                    await saveFileSystemAccess(folderName, result.files);
+                } catch (e) {
+                    console.warn("FS Access failed (likely SecurityError), falling back to download.", e);
+                    await saveDownloadFallback(folderName, result.files);
+                }
+            } else {
+                await saveDownloadFallback(folderName, result.files);
+            }
+        }
+
+        async function saveFileSystemAccess(folderName, files) {
+            try {
+                const root = await window.showDirectoryPicker();
+                const dir = await root.getDirectoryHandle(folderName, { create: true });
+                
+                for (const file of files) {
+                    const fh = await dir.getFileHandle(file.name, { create: true });
+                    const w = await fh.createWritable();
+                    await w.write(file.content);
+                    await w.close();
+                }
+                alert(`Success! Saved to folder:\n${folderName}`);
+            } catch (e) {
+                if (e.name === 'AbortError') {
+                    return; // User cancelled
+                }
+                throw e; // Rethrow other errors to trigger fallback
+            }
+        }
+
+        async function saveDownloadFallback(folderName, files) {
+            alert(`Note: Direct folder access was blocked by the browser.\n\nAction Required:\n1. Create a folder named: "${folderName}"\n2. Save the following downloaded files inside it.`);
+            
+            const delay = ms => new Promise(r => setTimeout(r, ms));
+            
+            for (const file of files) {
+                const blob = new Blob([file.content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = file.name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                await delay(300);
+            }
+        }
+
+        function getTimestamp() {
+            const n = new Date();
+            return n.getFullYear().toString().slice(-2) +
+                   String(n.getMonth()+1).padStart(2,'0') +
+                   String(n.getDate()).padStart(2,'0') +
+                   String(n.getHours()).padStart(2,'0') +
+                   String(n.getMinutes()).padStart(2,'0');
+        }
+
+        // --- UTILS ---
+        const debounce = (fn, delay) => {
+            let id;
+            return (...args) => {
+                clearTimeout(id);
+                id = setTimeout(() => fn(...args), delay);
+            }
+        }
+
+        // --- SAMPLE DATA ---
+        const SAMPLE_JSON = {
+            "metadata": {
+                "source_title": "Mô hình ruộng đất Nam Kỳ",
+                "source_url": "N/A",
+                "source_ref": "nam ky ruong dat",
+                "topics": ["History"],
+                "source_language": "vi"
+            },
+            "clusters": [
+                {
+                    "cluster_title": "Tư hữu và không có địa chủ phong kiến",
+                    "cluster_context": "Nền tảng xã hội–pháp lý của Nam Kỳ thời Pháp thuộc.",
+                    "cluster_points": [
+                        { "Nam Kỳ áp dụng mô hình propriété privée theo Dân luật Pháp.": 1 },
+                        { "Tài phán tranh chấp đất đai thuộc về tòa án thuộc địa.": 2 }
+                    ],
+                    "references": [
+                        { "Brocheux, Pierre. The Mekong Delta...": 1 },
+                        { "Mark Cleary, Land codes...": 2 },
+                        { "Cady, John F. ...": 2 }
+                    ]
+                }
+            ]
+        };
+
+        // --- INITIALIZATION ---
+        const debouncedRender = debounce(renderPreview, 500);
+
+        els.input.addEventListener('input', debouncedRender);
+        
+        els.btnLoad.addEventListener('click', () => {
+            els.input.value = JSON.stringify(SAMPLE_JSON, null, 2);
+            renderPreview();
+        });
+        
+        els.btnClear.addEventListener('click', () => {
+            els.input.value = '';
+            renderPreview();
+        });
+        
+        els.btnParse.addEventListener('click', renderPreview);
+        els.btnSave.addEventListener('click', handleSave);
+
+    </script>
+</body>
+</html>
