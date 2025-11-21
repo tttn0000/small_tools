@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Formatting And Validation Result</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- JSON5 Library for robust parsing of lenient JSON -->
+    <script src="https://unpkg.com/json5@2/dist/index.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#1e293b',
+                            950: '#020617',
+                        }
+                    },
+                    animation: {
+                        'flash-green': 'flashGreen 1s ease-out forwards',
+                    },
+                    keyframes: {
+                        flashGreen: {
+                            '0%': { backgroundColor: '#10b981', color: 'white' },
+                            '100%': { backgroundColor: '#334155', color: 'white' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        .code-scroll::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .code-scroll::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        .code-scroll::-webkit-scrollbar-thumb {
+            background: #475569; 
+            border-radius: 4px;
+        }
+        .code-scroll::-webkit-scrollbar-thumb:hover {
+            background: #64748b; 
+        }
+        .drag-active {
+            border-color: #3b82f6 !important;
+            background-color: rgba(59, 130, 246, 0.1) !important;
+        }
+
+        /* Editor Overlay Styles */
+        .editor-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            font-family: monospace;
+            font-size: 0.875rem; 
+            line-height: 1.5rem; 
+        }
+
+        .editor-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 1rem; 
+            margin: 0;
+            border: 2px solid transparent;
+            box-sizing: border-box;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        #highlightLayer {
+            z-index: 1;
+            color: #cbd5e1; 
+            pointer-events: none; 
+            background-color: transparent;
+        }
+
+        #inputArea {
+            z-index: 2;
+            color: transparent;
+            background-color: transparent;
+            caret-color: white;
+            resize: none;
+            outline: none;
+        }
+        
+        #inputArea::selection {
+            background-color: rgba(148, 163, 184, 0.3); 
+            color: transparent;
+        }
+
+        .error-mark {
+            background-color: rgba(239, 68, 68, 0.4); 
+            border-bottom: 2px solid #ef4444;
+            color: transparent; 
+            border-radius: 2px;
+        }
+        
+        #highlightLayer .error-mark {
+            color: #fff;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-200 font-sans h-screen flex flex-col overflow-hidden">
+
+    <!-- ARGS SECTION -->
+    <div id="args-display" class="hidden">
+        ARGS = {
+            "APP_NAME": "JSON Formatting And Validation Result",
+            "FILENAME_PATTERN": "yymmdd_Title_Case_Of_The_App.html",
+            "OUTPUT_DESCRIPTION": "JSON Formatting And Validation Result",
+            "OUTPUT_FOLDER_ROOT": "_Output_Log"
+        }
+    </div>
+
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 p-3 shadow-md flex justify-between items-center z-10 shrink-0 h-14">
+        <div>
+            <h1 class="text-lg font-bold text-blue-400 tracking-wide">JSON Formatter & Fixer</h1>
+        </div>
+        <div class="text-right flex items-center gap-4">
+            <div class="text-xs text-slate-400 flex items-center gap-2">
+                <span id="processingIndicator" class="hidden text-yellow-400 flex items-center gap-1">
+                    <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                </span>
+                <span id="clock" class="font-mono text-slate-300">--:--</span>
+            </div>
+            <div class="text-xs text-slate-500">v1.3.1</div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden p-3 gap-3">
+        
+        <!-- Top Row: Editors -->
+        <div class="flex-1 flex flex-col md:flex-row overflow-hidden gap-3 min-h-0">
+            
+            <!-- INPUT PANEL -->
+            <section class="flex-1 flex flex-col bg-slate-800 rounded-lg border border-slate-700 shadow-sm overflow-hidden relative min-w-0">
+                <div class="p-2 bg-slate-850 border-b border-slate-700 flex justify-between items-center shrink-0 h-10">
+                    <span class="font-semibold text-xs text-slate-300 px-2">INPUT</span>
+                    <div class="flex gap-2">
+                        <label class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white text-xs px-2 py-0.5 rounded transition">
+                            Load File
+                            <input type="file" id="fileInput" class="hidden" accept=".json,.txt">
+                        </label>
+                        <button onclick="clearInput()" class="bg-slate-700 hover:bg-slate-600 text-white text-xs px-2 py-0.5 rounded transition">Clear</button>
+                    </div>
+                </div>
+                
+                <!-- Code Editor Area -->
+                <div id="dropZone" class="flex-1 relative min-h-0">
+                    <div class="editor-container">
+                        <!-- Syntax Highlight Layer -->
+                        <pre id="highlightLayer" aria-hidden="true" class="editor-layer code-scroll"></pre>
+                        <!-- Input Layer -->
+                        <textarea id="inputArea" class="editor-layer code-scroll focus:border-blue-500/50 transition-colors" spellcheck="false" placeholder="Paste JSON here or drag & drop a file..."></textarea>
+                    </div>
+                    
+                    <div id="dropOverlay" class="absolute inset-0 pointer-events-none flex items-center justify-center bg-slate-800/80 text-blue-400 font-bold text-xl opacity-0 transition-opacity z-30">
+                        Drop File Here
+                    </div>
+                </div>
+                
+                <div class="p-1 bg-slate-850 text-[10px] text-slate-500 border-t border-slate-700 truncate shrink-0 px-2" id="inputFileName">
+                    No file loaded
+                </div>
+            </section>
+
+            <!-- CONTROLS -->
+            <div class="hidden md:flex flex-col justify-center items-center gap-4 shrink-0">
+                <div class="w-px h-full bg-slate-800"></div>
+            </div>
+
+            <!-- OUTPUT PANEL -->
+            <section class="flex-1 flex flex-col bg-slate-800 rounded-lg border border-slate-700 shadow-sm overflow-hidden min-w-0">
+                <div class="p-2 bg-slate-850 border-b border-slate-700 flex justify-between items-center shrink-0 h-10">
+                    <span class="font-semibold text-xs text-slate-300 px-2">OUTPUT PREVIEW</span>
+                    <div class="flex items-center gap-2">
+                        <button id="copyBtn" class="text-xs bg-slate-700 hover:bg-slate-600 text-white px-2 py-0.5 rounded transition flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            Copy
+                        </button>
+                        <span id="statusTag" class="text-[10px] px-2 py-0.5 rounded bg-slate-700 text-slate-400">Waiting</span>
+                    </div>
+                </div>
+                <textarea id="outputArea" readonly class="flex-1 bg-slate-900 text-green-400 p-4 font-mono text-sm resize-none focus:outline-none code-scroll" placeholder="Formatted result will appear here..."></textarea>
+            </section>
+        </div>
+
+        <!-- Auto-Repair Toolbar & Error Panel -->
+        <section id="errorPanelWrapper" class="h-48 bg-slate-950 rounded-lg border border-slate-800 shadow-inner flex flex-col shrink-0 transition-all duration-300">
+            
+            <!-- Toolbar -->
+            <div class="p-2 bg-slate-900 border-b border-slate-800 flex flex-wrap gap-2 items-center shrink-0">
+                <span class="text-xs font-bold text-slate-400 mr-2">REPAIR TOOLS:</span>
+                
+                <button onclick="applyRepair('quotes')" class="repair-btn bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] px-2 py-1 rounded border border-slate-700 transition flex items-center gap-1">
+                    <span>""</span> Fix Quotes
+                </button>
+                <button onclick="applyRepair('commas')" class="repair-btn bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] px-2 py-1 rounded border border-slate-700 transition flex items-center gap-1">
+                    <span>,,</span> Fix Commas
+                </button>
+                <button onclick="applyRepair('escape')" class="repair-btn bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] px-2 py-1 rounded border border-slate-700 transition flex items-center gap-1">
+                    <span>\n</span> Escape Chars
+                </button>
+                <button onclick="applyRepair('brackets')" class="repair-btn bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] px-2 py-1 rounded border border-slate-700 transition flex items-center gap-1">
+                    <span>{}</span> Balance Brackets
+                </button>
+                
+                <div class="flex-1"></div>
+                
+                <button onclick="applyRepair('all')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] px-3 py-1 rounded border border-indigo-500 transition font-bold flex items-center gap-1 shadow-lg shadow-indigo-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                    </svg>
+                    Auto Fix All
+                </button>
+            </div>
+
+            <!-- Error Header -->
+            <div class="p-2 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center shrink-0 h-7">
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-bold text-red-400">DETECTED ERRORS</span>
+                    <span id="errorCountBadge" class="bg-red-900/50 text-red-200 text-[10px] px-1.5 rounded-full hidden">0</span>
+                </div>
+                <div class="text-[10px] text-slate-600">Click 'Jump' to locate</div>
+            </div>
+
+            <!-- Error List -->
+            <div class="flex-1 overflow-y-auto code-scroll p-2 relative">
+                <div id="emptyErrorState" class="absolute inset-0 flex items-center justify-center text-slate-700 text-sm italic">
+                    No errors detected.
+                </div>
+                <ul id="errorList" class="text-xs font-mono text-slate-400 space-y-1 hidden">
+                    <!-- Error items injected here -->
+                </ul>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER / ACTIONS -->
+    <footer class="bg-slate-800 border-t border-slate-700 p-3 z-10 shrink-0 h-14">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+            <div id="statusFooter" class="text-xs text-slate-500 hidden md:block truncate max-w-[50%]">
+               Auto-processing enabled (800ms delay)
+            </div>
+            <div class="flex gap-3 w-full md:w-auto justify-end">
+                 <button id="processBtn" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-1.5 rounded text-xs font-medium shadow transition flex items-center gap-2">
+                    Refresh / Process
+                </button>
+                <button id="saveBtn" class="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded text-xs font-medium shadow transition flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Save Output
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- SCRIPT -->
+    <script>
+        // Global Error Handler for robustness
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            const footer = document.getElementById('statusFooter');
+            if(footer) {
+                footer.innerHTML = `<span class="text-red-400 font-bold">Runtime Error: ${msg} (Line: ${lineNo})</span>`;
+                footer.title = msg;
+            }
+            return false;
+        };
+
+        // --- ARGS & CONFIGURATION ---
+        const ARGS = {
+            APP_NAME: "JSON Formatting And Validation Result",
+            OUTPUT_DESCRIPTION: "JSON Formatting And Validation Result",
+            ROOT_FOLDER: "_Output_Log"
+        };
+
+        // --- STATE ---
+        let state = {
+            inputName: "manual_input.json",
+            originalContent: "",
+            processedContent: null,
+            isValid: false,
+            wasRepaired: false,
+            processingLog: [],
+            detectedErrors: []
+        };
+
+        // --- DOM ELEMENTS ---
+        const els = {
+            input: document.getElementById('inputArea'),
+            highlightLayer: document.getElementById('highlightLayer'),
+            output: document.getElementById('outputArea'),
+            dropZone: document.getElementById('dropZone'),
+            dropOverlay: document.getElementById('dropOverlay'),
+            fileInput: document.getElementById('fileInput'),
+            fileName: document.getElementById('inputFileName'),
+            statusTag: document.getElementById('statusTag'),
+            processBtn: document.getElementById('processBtn'),
+            saveBtn: document.getElementById('saveBtn'),
+            copyBtn: document.getElementById('copyBtn'),
+            clock: document.getElementById('clock'),
+            errorList: document.getElementById('errorList'),
+            emptyErrorState: document.getElementById('emptyErrorState'),
+            errorCountBadge: document.getElementById('errorCountBadge'),
+            processingIndicator: document.getElementById('processingIndicator')
+        };
+
+        // --- REPAIR ENGINE ---
+        const RepairEngine = {
+            fixQuotes: (str) => {
+                let repaired = str.replace(/([{,]\s*)'([^']+)'(\s*:)/g, '$1"$2"$3'); 
+                repaired = repaired.replace(/:\s*'([^']*)'/g, ': "$1"'); 
+                repaired = repaired.replace(/([{,]\s*)([a-zA-Z0-9_$]+)(\s*:)/g, '$1"$2"$3');
+                return repaired;
+            },
+            
+            fixCommas: (str) => {
+                let repaired = str;
+                // Add missing commas between various valid end-start pairs
+                // Matches: " " | " { | " [ | " 1 | " true
+                repaired = repaired.replace(/(")\s*\n*\s*([{\["0-9tfn])/g, '$1,$2');
+                // Matches: } " | } { | } [ | } 1 ...
+                repaired = repaired.replace(/(\}|\])\s*\n*\s*([{\["0-9tfn])/g, '$1,$2');
+                // Matches: 1 " | true { ... (Numbers/Bools/Nulls followed by structure)
+                repaired = repaired.replace(/(true|false|null|[0-9])\s*\n*\s*([{\["tfn])/g, '$1,$2');
+                
+                // Remove trailing commas
+                repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+                return repaired;
+            },
+
+            escapeChars: (str) => {
+                let result = "";
+                let inString = false;
+                let escape = false;
+                for(let i=0; i<str.length; i++) {
+                    const char = str[i];
+                    if(char === '"' && !escape) { inString = !inString; result += char; continue; }
+                    if(inString && char === '\\') { escape = !escape; result += char; continue; }
+                    if(inString && !escape) {
+                        if(char === '\n') { result += '\\n'; continue; }
+                        if(char === '\t') { result += '\\t'; continue; }
+                    }
+                    if(char !== '\\') escape = false;
+                    result += char;
+                }
+                return result;
+            },
+
+            balanceBrackets: (str) => {
+                let openCurly = 0, openSquare = 0;
+                for(let c of str) {
+                    if(c === '{') openCurly++;
+                    if(c === '}') openCurly--;
+                    if(c === '[') openSquare++;
+                    if(c === ']') openSquare--;
+                }
+                let res = str;
+                while(openCurly > 0) { res += '}'; openCurly--; }
+                while(openSquare > 0) { res += ']'; openSquare--; }
+                return res;
+            },
+
+            autoFixAll: (str) => {
+                let s = str;
+                s = RepairEngine.fixQuotes(s);
+                s = RepairEngine.escapeChars(s);
+                s = RepairEngine.fixCommas(s);
+                s = RepairEngine.balanceBrackets(s);
+                return s;
+            }
+        };
+
+        function applyRepair(type) {
+            if(!els.input) return;
+            const original = els.input.value;
+            let repaired = original;
+
+            switch(type) {
+                case 'quotes': repaired = RepairEngine.fixQuotes(original); break;
+                case 'commas': repaired = RepairEngine.fixCommas(original); break;
+                case 'escape': repaired = RepairEngine.escapeChars(original); break;
+                case 'brackets': repaired = RepairEngine.balanceBrackets(original); break;
+                case 'all': repaired = RepairEngine.autoFixAll(original); break;
+            }
+
+            if (repaired !== original) {
+                els.input.value = repaired;
+                const btns = document.querySelectorAll('.repair-btn');
+                btns.forEach(b => {
+                    if(b.textContent.toLowerCase().includes(type) || type === 'all') {
+                        b.classList.add('animate-flash-green');
+                        setTimeout(() => b.classList.remove('animate-flash-green'), 1000);
+                    }
+                });
+                processJSON(); 
+            } else {
+                log("No changes needed for " + type);
+            }
+        }
+
+        const debounce = (func, wait) => {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        };
+
+        function init() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            els.saveBtn.disabled = true;
+            els.copyBtn.disabled = true;
+            setupDragAndDrop();
+            setupEventListeners();
+            setupEditorSync();
+            
+            if (typeof JSON5 === 'undefined') {
+                console.warn("JSON5 library failed to load. Falling back to native JSON.parse.");
+            }
+        }
+
+        function updateClock() {
+            const now = new Date();
+            els.clock.innerText = now.toLocaleTimeString();
+        }
+        
+        function log(msg) { console.log(msg); }
+
+        function setupEditorSync() {
+            els.input.addEventListener('scroll', () => {
+                els.highlightLayer.scrollTop = els.input.scrollTop;
+                els.highlightLayer.scrollLeft = els.input.scrollLeft;
+            });
+        }
+
+        function getLineAndCol(str, index) {
+            const lines = str.substring(0, index).split('\n');
+            const line = lines.length;
+            const col = lines[lines.length - 1].length + 1;
+            return { line, col };
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, "&#039;");
+        }
+
+        function renderHighlights() {
+            const text = els.input.value;
+            const errors = state.detectedErrors || [];
+
+            if (errors.length === 0) {
+                els.highlightLayer.innerHTML = escapeHtml(text) + '<br>'; 
+                return;
+            }
+
+            errors.sort((a, b) => a.index - b.index);
+
+            let html = "";
+            let currentIndex = 0;
+
+            errors.forEach(err => {
+                if (err.index > currentIndex) {
+                    html += escapeHtml(text.substring(currentIndex, err.index));
+                }
+
+                const errLen = err.length > 0 ? err.length : 1;
+                let errText = text.substring(err.index, err.index + errLen);
+                
+                if (errText === "" || errText === "\n" || errText === "\r") {
+                   errText = "&nbsp;"; 
+                } else {
+                   errText = escapeHtml(errText);
+                }
+
+                html += `<span class="error-mark" title="${escapeHtml(err.msg)}">${errText}</span>`;
+                currentIndex = err.index + errLen;
+            });
+
+            if (currentIndex < text.length) {
+                html += escapeHtml(text.substring(currentIndex));
+            }
+
+            els.highlightLayer.innerHTML = html + '<br>';
+        }
+
+        function updateErrorPanel() {
+            const errors = state.detectedErrors;
+            
+            if (errors.length > 0) {
+                els.emptyErrorState.classList.add('hidden');
+                els.errorList.classList.remove('hidden');
+                els.errorCountBadge.classList.remove('hidden');
+                els.errorCountBadge.innerText = errors.length;
+                
+                els.errorList.innerHTML = "";
+                errors.forEach((err, i) => {
+                    const li = document.createElement('li');
+                    li.className = "flex items-start gap-2 p-1.5 hover:bg-slate-800 rounded border border-transparent hover:border-slate-700 transition-colors group";
+                    li.innerHTML = `
+                        <button onclick="jumpToError(${err.line}, ${err.index}, ${err.length})" 
+                            class="shrink-0 bg-slate-800 group-hover:bg-blue-600 group-hover:text-white text-blue-400 border border-slate-700 text-[10px] px-2 py-0.5 rounded transition">
+                            Jump to Ln ${err.line}
+                        </button>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-red-400 font-bold">Col ${err.col}</div>
+                            <div class="text-slate-400 truncate" title="${escapeHtml(err.msg)}">${escapeHtml(err.msg)}</div>
+                        </div>
+                    `;
+                    els.errorList.appendChild(li);
+                });
+            } else {
+                els.emptyErrorState.classList.remove('hidden');
+                els.errorList.classList.add('hidden');
+                els.errorCountBadge.classList.add('hidden');
+            }
+        }
+
+        function jumpToError(line, index, length) {
+            const lineHeight = 24; 
+            const paddingTop = 16;
+            const scrollPos = ((line - 1) * lineHeight) + paddingTop - (els.input.clientHeight / 2); 
+            
+            els.input.scrollTop = scrollPos > 0 ? scrollPos : 0;
+            els.input.focus();
+            const len = length > 0 ? length : 1;
+            els.input.setSelectionRange(index, index + len);
+        }
+
+        function processJSON() {
+            els.processingIndicator.classList.remove('hidden');
+            setTimeout(() => {
+                _processJSONLogic();
+                els.processingIndicator.classList.add('hidden');
+            }, 10);
+        }
+
+        function _processJSONLogic() {
+            const raw = els.input.value;
+            state.originalContent = raw;
+            state.processingLog = [];
+            state.detectedErrors = [];
+            
+            if (!raw.trim()) {
+                setStatus("Empty", "bg-slate-700 text-slate-400");
+                renderHighlights();
+                updateErrorPanel();
+                return;
+            }
+
+            let resultObj = null;
+            state.wasRepaired = false;
+
+            // 1. Try Native JSON Parse
+            try {
+                resultObj = JSON.parse(raw);
+                state.isValid = true;
+            } catch(e) {
+                // 2. Try JSON5 Parse
+                try {
+                    if (typeof JSON5 !== 'undefined') {
+                        resultObj = JSON5.parse(raw);
+                        state.isValid = true;
+                        state.wasRepaired = true;
+                    } else {
+                        throw e;
+                    }
+                } catch (e2) {
+                    // 3. Custom Repair/Analysis
+                    state.isValid = false;
+                    const analysis = validateAndRepair(raw);
+                    state.detectedErrors = analysis.errors;
+                    
+                     try {
+                        if (typeof JSON5 !== 'undefined') {
+                             resultObj = JSON5.parse(analysis.repaired);
+                        } else {
+                             resultObj = JSON.parse(analysis.repaired);
+                        }
+                        state.isValid = true;
+                        state.wasRepaired = true;
+                    } catch (e3) {
+                        state.isValid = false;
+                    }
+                }
+            }
+            
+            if (state.isValid && state.detectedErrors.length === 0) {
+                 const strictCheck = validateAndRepair(raw);
+                 if (strictCheck.errors.length > 0) {
+                     state.detectedErrors = strictCheck.errors; 
+                 }
+            }
+
+            renderHighlights();
+            updateErrorPanel();
+
+            if (state.isValid) {
+                state.processedContent = JSON.stringify(resultObj, null, 4);
+                els.output.value = state.processedContent;
+                els.saveBtn.disabled = false;
+                els.copyBtn.disabled = false;
+                
+                if (state.wasRepaired) {
+                    setStatus(`Repaired/JSON5`, "bg-yellow-600 text-white");
+                } else {
+                    setStatus("Valid JSON", "bg-emerald-600 text-white");
+                }
+            } else {
+                els.output.value = "Output unavailable. Critical syntax errors prevent parsing.\nPlease use the Repair Tools below.";
+                els.saveBtn.disabled = true;
+                els.copyBtn.disabled = true;
+                setStatus("Invalid", "bg-red-600 text-white");
+            }
+        }
+
+        function validateAndRepair(str) {
+            let errors = [];
+            let result = "";
+            let stack = []; 
+            let inString = false;
+            let escape = false;
+            let lastSignificantChar = null;
+            
+            for (let i = 0; i < str.length; i++) {
+                const char = str[i];
+                const lc = getLineAndCol(str, i);
+
+                // 1. String Handling
+                if (char === '"' && !escape) {
+                    if (inString) {
+                        let nextIdx = i + 1;
+                        while (nextIdx < str.length && /\s/.test(str[nextIdx])) nextIdx++;
+                        const nextChar = str[nextIdx];
+                        // Improved Delimiter Check: Includes " { [ and digits/bools to detect missing commas instead of unescaped quotes
+                        const isDelimiter = /[:,\}\]"{[\dftn]/.test(nextChar) || nextChar === undefined;
+                        
+                        if (!isDelimiter) {
+                            errors.push({ index: i, length: 1, msg: "Unescaped quote / invalid string end", line: lc.line, col: lc.col });
+                            result += '\\"';
+                            continue;
+                        }
+                    }
+                    inString = !inString;
+                    result += char;
+                    if (!inString) lastSignificantChar = '"';
+                    continue;
+                }
+
+                // 2. Escape Handling
+                if (inString) {
+                    if (char === '\\') {
+                        escape = !escape;
+                        result += char;
+                        continue;
+                    } else {
+                        escape = false;
+                    }
+                    if (char === '\n') {
+                        errors.push({ index: i, length: 1, msg: "Unescaped newline in string", line: lc.line, col: lc.col });
+                        result += '\\n';
+                        continue;
+                    }
+                    result += char;
+                    continue;
+                }
+
+                // 3. Structure Handling
+                if (char === "'") {
+                     errors.push({ index: i, length: 1, msg: "Single quote (Standard JSON requires double)", line: lc.line, col: lc.col });
+                     result += '"'; 
+                     continue;
+                }
+
+                if (/\s/.test(char)) {
+                    result += char;
+                    continue;
+                }
+
+                // Missing Comma check
+                if (lastSignificantChar && /["{\[\-\d]/.test(char)) { 
+                     if (/["}\]0-9el]/.test(lastSignificantChar)) {
+                         errors.push({ index: i, length: 1, msg: "Missing comma", line: lc.line, col: lc.col });
+                         result += ',';
+                     }
+                }
+
+                if (char === '{') {
+                    stack.push({ type: '}', index: i });
+                    lastSignificantChar = '{';
+                } else if (char === '[') {
+                    stack.push({ type: ']', index: i });
+                    lastSignificantChar = '[';
+                } else if (char === '}' || char === ']') {
+                    if (stack.length > 0 && stack[stack.length - 1].type === char) {
+                        stack.pop();
+                    } else {
+                        if (stack.length === 0) {
+                             errors.push({ index: i, length: 1, msg: `Extra closing '${char}'`, line: lc.line, col: lc.col });
+                        } else {
+                             errors.push({ index: i, length: 1, msg: `Mismatched bracket. Exp '${stack[stack.length-1].type}' found '${char}'`, line: lc.line, col: lc.col });
+                             result += stack.pop().type; 
+                             result += ','; 
+                        }
+                    }
+                    lastSignificantChar = char;
+                } else {
+                    lastSignificantChar = char;
+                }
+
+                result += char;
+            }
+            
+            while (stack.length > 0) {
+                const missing = stack.pop();
+                errors.push({ index: str.length, length: 0, msg: `Missing closing '${missing.type}'`, line: 'EOF', col: 'EOF' });
+                result += missing.type;
+            }
+
+            return { repaired: result, errors: errors };
+        }
+
+        function setStatus(text, classes) {
+            els.statusTag.className = `text-[10px] px-2 py-0.5 rounded ${classes}`;
+            els.statusTag.innerText = text;
+        }
+
+        function copyToClipboard() {
+            if (!state.processedContent) return;
+            els.output.select();
+            els.output.setSelectionRange(0, 99999); 
+            try {
+                document.execCommand('copy');
+                const originalHTML = els.copyBtn.innerHTML;
+                els.copyBtn.innerHTML = `<span class="text-emerald-400 font-bold">Copied!</span>`;
+                setTimeout(() => els.copyBtn.innerHTML = originalHTML, 1500);
+            } catch (err) {}
+            window.getSelection().removeAllRanges();
+        }
+
+        function setupEventListeners() {
+            const autoProcess = debounce(processJSON, 800);
+            els.input.addEventListener('input', () => {
+                els.highlightLayer.innerHTML = escapeHtml(els.input.value) + '<br>';
+                els.saveBtn.disabled = true;
+                els.copyBtn.disabled = true;
+                setStatus("Processing...", "bg-blue-900 text-white");
+                autoProcess();
+            });
+
+            els.processBtn.onclick = processJSON; 
+            els.fileInput.onchange = handleFileSelect;
+            els.saveBtn.onclick = handleSaveSequence;
+            els.copyBtn.onclick = copyToClipboard;
+        }
+
+        function setupDragAndDrop() {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+                els.dropZone.addEventListener(evt, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+            });
+            els.dropZone.addEventListener('dragenter', () => {
+                els.input.classList.add('drag-active');
+                els.dropOverlay.classList.remove('opacity-0');
+            });
+            els.dropZone.addEventListener('dragleave', () => {
+                els.input.classList.remove('drag-active');
+                els.dropOverlay.classList.add('opacity-0');
+            });
+            els.dropZone.addEventListener('drop', (e) => {
+                els.input.classList.remove('drag-active');
+                els.dropOverlay.classList.add('opacity-0');
+                if(e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+            });
+        }
+
+        function handleFileSelect(e) {
+            if (e.target.files.length) loadFile(e.target.files[0]);
+        }
+
+        function loadFile(file) {
+            state.inputName = file.name;
+            els.fileName.innerText = `Loaded: ${file.name}`;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                els.input.value = e.target.result;
+                els.highlightLayer.innerHTML = escapeHtml(e.target.result);
+                processJSON();
+            };
+            reader.readAsText(file);
+        }
+
+        function clearInput() {
+            els.input.value = "";
+            els.highlightLayer.innerHTML = "";
+            els.output.value = "";
+            state.detectedErrors = [];
+            renderHighlights();
+            updateErrorPanel();
+            els.fileName.innerText = "No file loaded";
+            state.inputName = "manual_input.json";
+            els.saveBtn.disabled = true;
+            els.copyBtn.disabled = true;
+            setStatus("Waiting", "bg-slate-700 text-slate-400");
+        }
+
+        function getTimestamp() {
+            const now = new Date();
+            return `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+        }
+
+        function generateFolderName() {
+            return `[${getTimestamp()}] - ${ARGS.OUTPUT_DESCRIPTION} - (${state.inputName})`;
+        }
+
+        function generateSummary() {
+            return JSON.stringify({
+                app: ARGS.APP_NAME,
+                timestamp: new Date().toISOString(),
+                inputFile: state.inputName,
+                errorsFound: state.detectedErrors.length,
+                errorDetails: state.detectedErrors,
+                status: state.isValid ? "Success" : "Failed"
+            }, null, 2);
+        }
+
+        async function handleSaveSequence() {
+            if (!state.processedContent) return;
+            const folderName = generateFolderName();
+            const outputFilename = `formatted_${state.inputName.replace('.json', '')}.json`;
+            const summaryFilename = "run_summary.json";
+            const isIframe = window.self !== window.top;
+
+            if ('showDirectoryPicker' in window && !isIframe) {
+                try {
+                    const rootHandle = await window.showDirectoryPicker({ id: 'output_log_picker', mode: 'readwrite' });
+                    const logDirHandle = await rootHandle.getDirectoryHandle(ARGS.ROOT_FOLDER, { create: true });
+                    const runDirHandle = await logDirHandle.getDirectoryHandle(folderName, { create: true });
+
+                    const fileHandle = await runDirHandle.getFileHandle(outputFilename, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(state.processedContent);
+                    await writable.close();
+
+                    const summaryHandle = await runDirHandle.getFileHandle(summaryFilename, { create: true });
+                    const summaryWritable = await summaryHandle.createWritable();
+                    await summaryWritable.write(generateSummary());
+                    await summaryWritable.close();
+
+                    alert(`Saved to: ${ARGS.ROOT_FOLDER}/${folderName}`);
+                } catch (err) {
+                    if (err.name !== 'AbortError') fallbackDownload(folderName, outputFilename, summaryFilename);
+                }
+            } else {
+                fallbackDownload(folderName, outputFilename, summaryFilename);
+            }
+        }
+
+        function fallbackDownload(folderName, outputName, summaryName) {
+            alert(`Save manually to folder:\n${folderName}`);
+            downloadString(state.processedContent, outputName);
+            setTimeout(() => downloadString(generateSummary(), summaryName), 500);
+        }
+
+        function downloadString(content, filename) {
+            const blob = new Blob([content], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        init();
+    </script>
+</body>
+</html>
