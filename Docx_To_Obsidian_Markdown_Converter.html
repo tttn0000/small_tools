@@ -332,7 +332,7 @@
                     <h3>⚙️ Output Settings</h3>
                     <div class="input-group">
                         <label for="outputPrefix">Filename Prefix:</label>
-                        <input type="text" id="outputPrefix" value="DEEPSEARCH - ">
+                        <input type="text" id="outputPrefix" value="DEEP - ">
                     </div>
                     <div class="input-group">
                         <label for="outputSuffix">Filename Suffix:</label>
@@ -398,7 +398,7 @@ title: "{title}"</textarea>
                         <li>Select one or more DOCX files</li>
                         <li>Configure output and footnote settings</li>
                         <li>Click Convert to process files</li>
-                        <li>Choose output folder (creates <code>[yymmddhhmm] - Docx To Obsidian Markdown - (filename)</code>)</li>
+                        <li>Choose output folder (creates <code>[yymmddhhmm] - Docx To Obsidian Markdown - (DEEP filename)</code>)</li>
                         <li>All files saved with media subfolder if enabled</li>
                         <li>Placeholders: {date} = current date, {title} = document title</li>
                     </ul>
@@ -439,7 +439,7 @@ title: "{title}"</textarea>
             OUTPUT_DESCRIPTION: "Docx To Obsidian Markdown",
             TIME_FORMAT: "[yymmddhhmm]",
             FOOTNOTE_MARKER_DEFAULT: "Works cited",
-            OUTPUT_PREFIX_DEFAULT: "DEEPSEARCH - ",
+            OUTPUT_PREFIX_DEFAULT: "DEEP - ",
             OUTPUT_SUFFIX_DEFAULT: "",
             EXTRACT_MEDIA_DEFAULT: true,
             MEDIA_DIRNAME: "media",
@@ -1439,13 +1439,13 @@ title: "{title}"</textarea>
         }
 
         async function downloadFilesIndividually(outputData) {
-            const { timestamp, filename, markdown, images, summary } = outputData;
-            const folderName = `${timestamp} - ${ARGS.OUTPUT_DESCRIPTION} - (${filename})`;
-            
-            alert(`File System Access API not available. Please save each file manually.\n\nFolder name: ${folderName}\n\nFiles:\n- ${timestamp} - ${filename}.md\n- ${images.length} images (if enabled)\n- ${timestamp} - summary.json`);
-            
+            const { timestamp, filename, nameWithoutTimestamp, markdown, images, summary } = outputData;
+            const folderName = `${timestamp} - ${ARGS.OUTPUT_DESCRIPTION} - (${nameWithoutTimestamp})`;
+
+            alert(`File System Access API not available. Please save each file manually.\n\nFolder name: ${folderName}\n\nFiles:\n- ${filename}.md\n- ${images.length} images (if enabled)\n- ${timestamp} - summary.json`);
+
             // Download markdown
-            const mdFilename = `${timestamp} - ${filename}.md`;
+            const mdFilename = `${filename}.md`;
             const mdBlob = new Blob(['\ufeff' + markdown], { type: 'text/markdown;charset=utf-8' });
             saveAs(mdBlob, mdFilename);
             
@@ -1541,31 +1541,33 @@ title: "{title}"</textarea>
                         markdown = `---\n${yaml}\n---\n\n${markdown}`;
                     }
                     
-                    // Determine filename (NO TIMESTAMP)
-                    let outputFilename;
+                    // Determine filename with timestamp and truncated title
+                    const outputTimestamp = runTimestamp || getTimestamp();
                     const prefix = document.getElementById('outputPrefix').value;
                     const suffix = document.getElementById('outputSuffix').value;
-                    
-                    if (document.getElementById('useTitleAsFilename').checked && title) {
-                        outputFilename = prefix + toTitleCase(title) + suffix;
-                    } else {
-                        outputFilename = prefix + file.name.replace('.docx', '') + suffix;
-                    }
-                    
+                    const baseTitle = document.getElementById('useTitleAsFilename').checked && title
+                        ? toTitleCase(title, 30)
+                        : toTitleCase(file.name.replace('.docx', ''), 30);
+
+                    let nameWithoutTimestamp = `${prefix}${baseTitle}${suffix}`;
+
                     if (!inlineFootnotes) {
-                        outputFilename += '_2part';
+                        nameWithoutTimestamp += '_2part';
                     }
+
+                    const outputFilename = `${outputTimestamp} - ${nameWithoutTimestamp}`;
                     
                     // Prepare output data
                     const extractMedia = document.getElementById('extractMedia').checked;
                     const outputData = {
-                        timestamp: runTimestamp || getTimestamp(),
+                        timestamp: outputTimestamp,
                         filename: outputFilename,
+                        nameWithoutTimestamp,
                         markdown,
                         images: extractMedia ? images : [],
                         summary: {
                             script_name: '250106_Docx_To_Obsidian_Markdown_Converter.html',
-                            timestamp: runTimestamp || getTimestamp(),
+                            timestamp: outputTimestamp,
                             input_file: file.name,
                             output_description: ARGS.OUTPUT_DESCRIPTION,
                             settings: {
