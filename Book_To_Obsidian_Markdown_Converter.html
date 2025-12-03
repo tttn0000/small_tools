@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book To Obsidian MD Converter</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.3s;
+        }
+        
+        .tab:hover {
+            color: #333;
+        }
+        
+        .tab.active {
+            color: #0066cc;
+            border-bottom-color: #0066cc;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+        
+        .drop-zone:hover {
+            border-color: #0066cc;
+            background: #f0f7ff;
+        }
+        
+        .drop-zone.drag-over {
+            border-color: #0066cc;
+            background: #e6f2ff;
+        }
+        
+        .drop-zone-text {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .file-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f0f7ff;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #333;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .required {
+            color: #d32f2f;
+        }
+        
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #0066cc;
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: #0052a3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            margin-left: 10px;
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background: #5a6268;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0066cc, #0052a3);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .progress-status {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+        
+        .log-container {
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin: 3px 0;
+            color: #333;
+        }
+        
+        .log-entry.info {
+            color: #0066cc;
+        }
+        
+        .log-entry.success {
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .log-entry.error {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        
+        .log-entry.warning {
+            color: #ffc107;
+        }
+        
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .checkbox-group {
+            margin: 15px 0;
+        }
+        
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            cursor: pointer;
+        }
+        
+        .checkbox-label input {
+            margin-right: 8px;
+        }
+        
+        .results-container {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            border: 1px solid #4caf50;
+        }
+        
+        .results-title {
+            color: #2e7d32;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .results-list {
+            list-style: none;
+            font-size: 14px;
+        }
+        
+        .results-list li {
+            padding: 5px 0;
+            color: #333;
+        }
+        
+        .inline-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .inline-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Book To Obsidian MD Converter</h1>
+        <p class="subtitle">Convert EPUB/KEPUB ebooks to Obsidian Markdown or create metadata-only files from book information</p>
+        
+        <div class="tabs">
+            <button class="tab active" data-tab="full-conversion">Full Conversion</button>
+            <button class="tab" data-tab="metadata-only">Metadata Only</button>
+        </div>
+        
+        <!-- Full Conversion Tab -->
+        <div id="full-conversion" class="tab-content active">
+            <div class="section">
+                <div class="section-title">1. Select Ebook File(s)</div>
+                <div id="drop-zone-full" class="drop-zone">
+                    <div class="drop-zone-text">
+                        📚 Drag and drop EPUB/KEPUB file(s) here<br>
+                        or click to browse
+                    </div>
+                </div>
+                <input type="file" id="file-input-full" accept=".epub,.kepub" multiple style="display: none;">
+                <div id="file-info-full" class="file-info" style="display: none;"></div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">2. Options</div>
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="enable-bibtex-full" checked>
+                        Enable BibTeX metadata search (Google Books, Open Library, Crossref)
+                    </label>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button id="process-full-btn" class="btn btn-primary" disabled>Convert to Markdown</button>
+                <button id="cancel-full-btn" class="btn btn-secondary" style="display: none;">Cancel</button>
+            </div>
+        </div>
+        
+        <!-- Metadata Only Tab -->
+        <div id="metadata-only" class="tab-content">
+            <div class="section">
+                <div class="section-title">1. Input Method</div>
+                <div class="tabs" style="border: none; margin-bottom: 15px;">
+                    <button class="tab active" data-tab="manual-input" style="font-size: 13px;">Manual Entry</button>
+                    <button class="tab" data-tab="json-input" style="font-size: 13px;">JSON Input</button>
+                    <button class="tab" data-tab="bibtex-input" style="font-size: 13px;">BibTeX Input</button>
+                </div>
+                
+                <!-- Manual Entry -->
+                <div id="manual-input" class="tab-content active">
+                    <div class="form-group">
+                        <label>Book Title <span class="required">*</span></label>
+                        <input type="text" id="meta-title" placeholder="Enter book title">
+                    </div>
+                    
+                    <div class="inline-group">
+                        <div class="form-group">
+                            <label>Author</label>
+                            <input type="text" id="meta-author" placeholder="Author name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Publication Year</label>
+                            <input type="text" id="meta-year" placeholder="YYYY">
+                        </div>
+                    </div>
+                    
+                    <div class="inline-group">
+                        <div class="form-group">
+                            <label>ISBN</label>
+                            <input type="text" id="meta-isbn" placeholder="ISBN-13 or ISBN-10">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>DOI</label>
+                            <input type="text" id="meta-doi" placeholder="10.xxxx/xxxxx">
+                        </div>
+                    </div>
+                    
+                    <div class="help-text">* Title is required. Other fields are optional but help improve metadata accuracy.</div>
+                </div>
+                
+                <!-- BibTeX Input (injected via JS to keep structure) -->
+                
+                <!-- JSON Input -->
+                <div id="json-input" class="tab-content">
+                    <div class="form-group">
+                        <label>Upload JSON File</label>
+                        <div id="drop-zone-json" class="drop-zone" style="padding: 20px;">
+                            <div class="drop-zone-text">
+                                📄 Drop JSON file or click to browse
+                            </div>
+                        </div>
+                        <input type="file" id="file-input-json" accept=".json" style="display: none;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Or Paste JSON</label>
+                        <textarea id="json-paste" placeholder='[{"title": "Book Title", "author": "Author Name", "year": "2024", "isbn": "...", "doi": "..."}]'></textarea>
+                        <div class="help-text">Paste a JSON array of book objects. Each object must have at least a "title" field.</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button id="process-meta-btn" class="btn btn-primary">Create Metadata File(s)</button>
+                <button id="cancel-meta-btn" class="btn btn-secondary" style="display: none;">Cancel</button>
+            </div>
+        </div>
+        
+        <!-- Progress Section -->
+        <div id="progress-container" class="progress-container">
+            <div class="progress-status" id="progress-status">Preparing...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill">0%</div>
+            </div>
+            <div class="log-container" id="log-container"></div>
+        </div>
+        
+        <!-- Results Section -->
+        <div id="results-container" class="results-container">
+            <div class="results-title">✓ Processing Complete</div>
+            <ul class="results-list" id="results-list"></ul>
+        </div>
+    </div>
+
+    <!-- JSZip Library (for EPUB handling) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <script>
+// --------------------ARGS
+const ARGS = {
+    OUTPUT_DESCRIPTION: "Book To Obsidian MD Converter",
+    FIGURES_FOLDER_NAME: "Figures",
+    TIMESTAMP_FORMAT: "yymmddhhmm",
+    IMAGE_EXTENSIONS: ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.bmp', '.webp'],
+    SUPPORTED_FORMATS: ['.epub', '.kepub'],
+    BIBTEX_SEARCH_TIMEOUT: 10000,
+    BIBTEX_API_DELAY: 500,
+    MAX_RETRIES: 3,
+    MATCH_THRESHOLD: 0.85,
+    NO_CONTENT_NOTE: "> [!NOTE] No book content"
+};
+
+// --------------------CONSTANTS & CONFIGURATIONS
+const API_ENDPOINTS = {
+    GOOGLE_BOOKS: 'https://www.googleapis.com/books/v1/volumes',
+    OPEN_LIBRARY_SEARCH: 'https://openlibrary.org/search.json',
+    OPEN_LIBRARY_ISBN: 'https://openlibrary.org/api/books',
+    CROSSREF: 'https://api.crossref.org/works'
+};
+
+// --------------------GUI COMPONENTS
+let selectedFiles = [];
+let isProcessing = false;
+let currentController = null;
+
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        const targetTab = this.dataset.tab;
+        
+        // Handle main tabs
+        if (targetTab === 'full-conversion' || targetTab === 'metadata-only') {
+            document.querySelectorAll('.tabs > .tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.container > .tab-content').forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            document.getElementById(targetTab).classList.add('active');
+        }
+        // Handle sub-tabs in metadata section
+        else if (targetTab === 'manual-input' || targetTab === 'json-input' || targetTab === 'bibtex-input') {
+            const parent = this.closest('.tabs');
+            parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#metadata-only > .section > .tab-content').forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            document.getElementById(targetTab).classList.add('active');
+        }
+    });
+});
+
+// Full conversion file handling
+const dropZoneFull = document.getElementById('drop-zone-full');
+const fileInputFull = document.getElementById('file-input-full');
+const fileInfoFull = document.getElementById('file-info-full');
+const processFullBtn = document.getElementById('process-full-btn');
+
+dropZoneFull.addEventListener('click', () => fileInputFull.click());
+dropZoneFull.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZoneFull.classList.add('drag-over');
+});
+dropZoneFull.addEventListener('dragleave', () => dropZoneFull.classList.remove('drag-over'));
+dropZoneFull.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZoneFull.classList.remove('drag-over');
+    handleFullFiles(e.dataTransfer.files);
+});
+fileInputFull.addEventListener('change', (e) => handleFullFiles(e.target.files));
+
+function handleFullFiles(files) {
+    selectedFiles = Array.from(files).filter(f => {
+        const ext = '.' + f.name.split('.').pop().toLowerCase();
+        return ARGS.SUPPORTED_FORMATS.includes(ext);
+    });
+    
+    if (selectedFiles.length > 0) {
+        const fileList = selectedFiles.map(f => `• ${f.name} (${(f.size / 1024 / 1024).toFixed(2)} MB)`).join('<br>');
+        fileInfoFull.innerHTML = `<strong>Selected ${selectedFiles.length} file(s):</strong><br>${fileList}`;
+        fileInfoFull.style.display = 'block';
+        processFullBtn.disabled = false;
+    } else {
+        fileInfoFull.style.display = 'none';
+        processFullBtn.disabled = true;
+        log('No valid EPUB/KEPUB files selected', 'error');
+    }
+}
+
+// JSON file handling
+const dropZoneJson = document.getElementById('drop-zone-json');
+const fileInputJson = document.getElementById('file-input-json');
+
+dropZoneJson.addEventListener('click', () => fileInputJson.click());
+dropZoneJson.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZoneJson.classList.add('drag-over');
+});
+dropZoneJson.addEventListener('dragleave', () => dropZoneJson.classList.remove('drag-over'));
+dropZoneJson.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZoneJson.classList.remove('drag-over');
+    handleJsonFile(e.dataTransfer.files[0]);
+});
+fileInputJson.addEventListener('change', (e) => handleJsonFile(e.target.files[0]));
+
+function handleJsonFile(file) {
+    if (!file || !file.name.endsWith('.json')) {
+        log('Please select a valid JSON file', 'error');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('json-paste').value = e.target.result;
+        log('JSON file loaded successfully', 'success');
+    };
+    reader.readAsText(file);
+}
+
+// Inject BibTeX input UI dynamically and wire events
+(() => {
+    const jsonDiv = document.getElementById('json-input');
+    const bibDiv = document.createElement('div');
+    bibDiv.id = 'bibtex-input';
+    bibDiv.className = 'tab-content';
+    bibDiv.innerHTML = `
+        <div class="form-group">
+            <label>Upload .bib File</label>
+            <div id="drop-zone-bib" class="drop-zone" style="padding: 20px;">
+                <div class="drop-zone-text">📚 Drop .bib file or click to browse</div>
+            </div>
+            <input type="file" id="file-input-bib" accept=".bib" style="display: none;">
+        </div>
+        <div class="form-group">
+            <label>Or Paste BibTeX</label>
+            <textarea id="bibtex-paste" placeholder="@book{Key,\n  author = {Last, First and Coauthor, Second},\n  title = {Title},\n  year = {2024},\n  publisher = {Publisher},\n  isbn = {978...},\n  doi = {10....}\n}\n\n@book{Another,...}"></textarea>
+            <div class="help-text">Paste one or more BibTeX entries. No API calls are made; pure conversion.</div>
+        </div>
+    `;
+    jsonDiv.parentNode.insertBefore(bibDiv, jsonDiv.nextSibling);
+
+    const dropZoneBib = document.getElementById('drop-zone-bib');
+    const fileInputBib = document.getElementById('file-input-bib');
+    dropZoneBib.addEventListener('click', () => fileInputBib.click());
+    dropZoneBib.addEventListener('dragover', (e) => { e.preventDefault(); dropZoneBib.classList.add('drag-over'); });
+    dropZoneBib.addEventListener('dragleave', () => dropZoneBib.classList.remove('drag-over'));
+    dropZoneBib.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZoneBib.classList.remove('drag-over');
+        handleBibFile(e.dataTransfer.files[0]);
+    });
+    fileInputBib.addEventListener('change', (e) => handleBibFile(e.target.files[0]));
+})();
+
+function handleBibFile(file) {
+    if (!file || !/\.bib$/i.test(file.name)) {
+        log('Please select a valid .bib file', 'error');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('bibtex-paste').value = e.target.result;
+        log('.bib file loaded successfully', 'success');
+    };
+    reader.readAsText(file);
+}
+
+function parseBibtexEntries(bibText) {
+    // Normalize line endings
+    const text = String(bibText || '').replace(/\r\n?|\n/g, '\n');
+    const entries = [];
+
+    // Split into entries by scanning braces to respect nested fields
+    let i = 0;
+    while (i < text.length) {
+        // Find next '@'
+        const at = text.indexOf('@', i);
+        if (at === -1) break;
+        // Find opening '{' after '@type'
+        const braceOpen = text.indexOf('{', at);
+        if (braceOpen === -1) break;
+        // Walk until matching closing '}' at depth 0
+        let depth = 1;
+        let j = braceOpen + 1;
+        while (j < text.length && depth > 0) {
+            const ch = text[j];
+            if (ch === '{') depth++;
+            else if (ch === '}') depth--;
+            j++;
+        }
+        const entryStr = text.slice(at, j);
+        i = j;
+        if (!entryStr.trim()) continue;
+
+        // Extract fields
+        const typeMatch = entryStr.match(/^@([a-zA-Z]+)\s*\{/);
+        const entryType = typeMatch ? typeMatch[1].toLowerCase() : 'book';
+        const body = entryStr.replace(/^@[^{]+\{[^,]*,?\s*/, '').replace(/}\s*$/, '');
+
+        const fields = {};
+        // Parse key = {value} or "value"; handle commas inside braces/quotes
+        let k = 0;
+        let current = '';
+        let braceDepth = 0;
+        let inQuotes = false;
+        while (k < body.length) {
+            const c = body[k];
+            if (c === '"' && body[k - 1] !== '\\') inQuotes = !inQuotes;
+            if (!inQuotes) {
+                if (c === '{') braceDepth++;
+                if (c === '}') braceDepth = Math.max(0, braceDepth - 1);
+            }
+            if (c === ',' && !inQuotes && braceDepth === 0) {
+                if (current.trim()) parseField(current, fields);
+                current = '';
+            } else {
+                current += c;
+            }
+            k++;
+        }
+        if (current.trim()) parseField(current, fields);
+
+        function cleanVal(val) {
+            if (val == null) return '';
+            let v = String(val).trim();
+            if ((v.startsWith('{') && v.endsWith('}')) || (v.startsWith('"') && v.endsWith('"'))) {
+                v = v.slice(1, -1);
+            }
+            // Collapse whitespace
+            v = v.replace(/\s+/g, ' ').trim();
+            return v;
+        }
+        function parseField(chunk, out) {
+            const idx = chunk.indexOf('=');
+            if (idx === -1) return;
+            const key = chunk.slice(0, idx).trim().toLowerCase();
+            const val = chunk.slice(idx + 1).trim();
+            out[key] = cleanVal(val);
+        }
+
+        // Map to metadata
+        const title = fields.title || '';
+        const year = fields.year || '';
+        const publisher = fields.publisher || '';
+        const doi = fields.doi || '';
+        const isbn = fields.isbn || fields['isbn-13'] || fields['isbn10'] || '';
+        const authorsRaw = fields.author || '';
+        const authors = authorsRaw
+            ? authorsRaw.split(/\s+and\s+/i).map(a => a.replace(/\s+/g, ' ').trim()).filter(Boolean)
+            : [];
+
+        // BibTeX string (normalized)
+        const bibtexNormalized = entryStr.trim();
+
+        const bibtexData = {
+            bibtex: bibtexNormalized,
+            title: title,
+            authors: authors,
+            year: year,
+            abstract: fields.abstract || '',
+            isbn: isbn,
+            publisher: publisher,
+            categories: [],
+            doi: doi,
+            url_GoogleBooks: '',
+            source: 'BibTeX'
+        };
+
+        // Push entry for metadata-only flow; store _bibtexData to skip API calls
+        entries.push({
+            title: title || '(Untitled)',
+            author: authors[0] || '',
+            year: year || '',
+            isbn: isbn || '',
+            doi: doi || '',
+            _bibtexData: bibtexData
+        });
+    }
+    return entries;
+}
+
+// Process buttons
+processFullBtn.addEventListener('click', () => processFullConversion());
+document.getElementById('process-meta-btn').addEventListener('click', () => processMetadataOnly());
+document.getElementById('cancel-full-btn').addEventListener('click', cancelProcessing);
+document.getElementById('cancel-meta-btn').addEventListener('click', cancelProcessing);
+
+// --------------------MAIN APPLICATION
+
+// Utility functions
+function getTimestamp() {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    return `${yy}${mm}${dd}${hh}${min}`;
+}
+
+function sanitizeFilename(name) {
+    return name.replace(/[<>:"/\\|?*]/g, '_');
+}
+
+function stripAccents(str) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function generateTNLibraryFilename(title, year) {
+    const TN_ID_TOTAL_MAX = 35; // Total max length including 'YYYY-'
+    const yearStr = (year && String(year).match(/^\d{4}$/)) ? String(year) : '0000';
+    const titleMax = TN_ID_TOTAL_MAX - (yearStr.length + 1); // 30
+    let titleClean = title.toLowerCase();
+    titleClean = stripAccents(titleClean);
+    titleClean = titleClean.replace(/[^a-z0-9]+/g, '_');
+    titleClean = titleClean.replace(/_+/g, '_').replace(/^_|_$/g, '');
+    
+    const titleToken = titleClean.length > titleMax 
+        ? titleClean.slice(0, titleMax) 
+        : titleClean.padEnd(titleMax, '-');
+    
+    return `${yearStr}-${titleToken}`;
+}
+
+function log(message, type = 'info') {
+    const logContainer = document.getElementById('log-container');
+    const entry = document.createElement('div');
+    entry.className = `log-entry ${type}`;
+    const timestamp = new Date().toLocaleTimeString();
+    entry.textContent = `[${timestamp}] ${message}`;
+    logContainer.appendChild(entry);
+    logContainer.scrollTop = logContainer.scrollHeight;
+}
+
+function updateProgress(percent, status) {
+    const progressFill = document.getElementById('progress-fill');
+    const progressStatus = document.getElementById('progress-status');
+    progressFill.style.width = percent + '%';
+    progressFill.textContent = Math.round(percent) + '%';
+    progressStatus.textContent = status;
+}
+
+function showProgress() {
+    document.getElementById('progress-container').style.display = 'block';
+    document.getElementById('results-container').style.display = 'none';
+    document.getElementById('log-container').innerHTML = '';
+    updateProgress(0, 'Initializing...');
+}
+
+function hideProgress() {
+    document.getElementById('progress-container').style.display = 'none';
+}
+
+function showResults(results) {
+    const resultsContainer = document.getElementById('results-container');
+    const resultsList = document.getElementById('results-list');
+    resultsList.innerHTML = '';
+    
+    results.forEach(result => {
+        const li = document.createElement('li');
+        li.textContent = result;
+        resultsList.appendChild(li);
+    });
+    
+    resultsContainer.style.display = 'block';
+}
+
+function cancelProcessing() {
+    if (currentController) {
+        currentController.abort();
+        currentController = null;
+    }
+    isProcessing = false;
+    log('Processing cancelled by user', 'warning');
+    hideProgress();
+    document.getElementById('cancel-full-btn').style.display = 'none';
+    document.getElementById('cancel-meta-btn').style.display = 'none';
+}
+
+// String similarity (Jaro-Winkler approximation)
+function stringsimilarity(str1, str2) {
+    if (!str1 || !str2) return 0;
+    str1 = str1.toLowerCase().trim();
+    str2 = str2.toLowerCase().trim();
+    if (str1 === str2) return 1.0;
+    
+    // Simple token-based similarity
+    const tokens1 = str1.split(/\s+/);
+    const tokens2 = str2.split(/\s+/);
+    const set1 = new Set(tokens1);
+    const set2 = new Set(tokens2);
+    const intersection = new Set([...set1].filter(x => set2.has(x)));
+    const union = new Set([...set1, ...set2]);
+    
+    return intersection.size / union.size;
+}
+
+function calculateMatchScore(candidateTitle, candidateAuthors, candidateYear, queryTitle, queryAuthor, queryYear) {
+    const titleScore = stringsimilarity(candidateTitle, queryTitle);
+    
+    let authorScore = 0;
+    if (queryAuthor && candidateAuthors && candidateAuthors.length > 0) {
+        const authorLastName = queryAuthor.split(/\s+/).pop().toLowerCase();
+        const candidateLastNames = candidateAuthors.map(a => a.split(/\s+/).pop().toLowerCase());
+        authorScore = candidateLastNames.some(ln => ln === authorLastName) ? 1.0 : 0;
+    }
+    
+    let yearScore = 1.0;
+    if (queryYear && candidateYear) {
+        const yearDiff = Math.abs(parseInt(queryYear) - parseInt(candidateYear));
+        yearScore = yearDiff <= 2 ? 1.0 - (yearDiff / 10) : 0;
+    }
+    
+    // Weighted average: Title 60%, Author 30%, Year 10%
+    return (titleScore * 0.6) + (authorScore * 0.3) + (yearScore * 0.1);
+}
+
+// BibTeX Search Functions
+async function searchGoogleBooks(title, author, isbn = null) {
+    try {
+        let query;
+        if (isbn) {
+            query = `isbn:${isbn}`;
+        } else {
+            query = `intitle:${title}`;
+            if (author) query += ` inauthor:${author}`;
+        }
+        
+        const url = `${API_ENDPOINTS.GOOGLE_BOOKS}?q=${encodeURIComponent(query)}&maxResults=3&printType=books`;
+        const response = await fetch(url, { 
+            signal: currentController?.signal,
+            timeout: ARGS.BIBTEX_SEARCH_TIMEOUT 
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.items && data.items.length > 0) {
+                return data;
+            }
+        }
+        return null;
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            log(`Google Books search error: ${error.message}`, 'warning');
+        }
+        return null;
+    }
+}
+
+async function searchOpenLibrary(title, author, isbn = null) {
+    try {
+        let url;
+        if (isbn) {
+            url = `${API_ENDPOINTS.OPEN_LIBRARY_ISBN}?bibkeys=ISBN:${isbn}&format=json&jscmd=data`;
+        } else {
+            const query = `${title} ${author || ''}`.trim();
+            url = `${API_ENDPOINTS.OPEN_LIBRARY_SEARCH}?q=${encodeURIComponent(query)}&limit=3`;
+        }
+        
+        const response = await fetch(url, { 
+            signal: currentController?.signal,
+            timeout: ARGS.BIBTEX_SEARCH_TIMEOUT 
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (isbn && data[`ISBN:${isbn}`]) {
+                return data[`ISBN:${isbn}`];
+            } else if (data.docs && data.docs.length > 0) {
+                return data.docs[0];
+            }
+        }
+        return null;
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            log(`Open Library search error: ${error.message}`, 'warning');
+        }
+        return null;
+    }
+}
+
+async function searchCrossref(title, author, isbn = null) {
+    try {
+        let query;
+        if (isbn) {
+            query = `filter=isbn:${isbn}`;
+        } else {
+            query = `query=${encodeURIComponent(`${title} ${author || ''}`.trim())}`;
+        }
+        
+        const url = `${API_ENDPOINTS.CROSSREF}?${query}&rows=3`;
+        const response = await fetch(url, { 
+            signal: currentController?.signal,
+            timeout: ARGS.BIBTEX_SEARCH_TIMEOUT 
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.message && data.message.items && data.message.items.length > 0) {
+                return data.message.items[0];
+            }
+        }
+        return null;
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            log(`Crossref search error: ${error.message}`, 'warning');
+        }
+        return null;
+    }
+}
+
+function parseGoogleBooksData(data, queryTitle, queryAuthor) {
+    try {
+        const items = data.items || [];
+        let bestMatch = null;
+        let bestScore = 0;
+        
+        for (const item of items) {
+            const volumeInfo = item.volumeInfo || {};
+            const title = volumeInfo.title || '';
+            const authors = volumeInfo.authors || [];
+            const year = (volumeInfo.publishedDate || '').split('-')[0];
+            
+            const score = calculateMatchScore(title, authors, year, queryTitle, queryAuthor, null);
+            if (score > bestScore) {
+                bestScore = score;
+                bestMatch = item;
+            }
+        }
+        
+        if (!bestMatch || bestScore < ARGS.MATCH_THRESHOLD) {
+            return null;
+        }
+        
+        const volumeInfo = bestMatch.volumeInfo || {};
+        const title = volumeInfo.title || queryTitle;
+        const authors = volumeInfo.authors || [];
+        const year = (volumeInfo.publishedDate || '').split('-')[0];
+        const publisher = volumeInfo.publisher || '';
+        const description = volumeInfo.description || '';
+        const categories = volumeInfo.categories || [];
+        
+        let isbn = '';
+        const identifiers = volumeInfo.industryIdentifiers || [];
+        for (const id of identifiers) {
+            if (id.type === 'ISBN_13' || id.type === 'ISBN_10') {
+                isbn = id.identifier;
+                break;
+            }
+        }
+        
+        // Generate BibTeX
+        let bibtex = '';
+        if (authors.length > 0) {
+            const firstAuthorLast = authors[0].split(/\s+/).pop();
+            const citeKey = `${firstAuthorLast}${year}`;
+            const authorStr = authors.join(' and ');
+            
+            bibtex = `@book{${citeKey},\n`;
+            bibtex += `  author = {${authorStr}},\n`;
+            bibtex += `  title = {${title}},\n`;
+            bibtex += `  year = {${year}},\n`;
+            if (publisher) bibtex += `  publisher = {${publisher}},\n`;
+            if (isbn) bibtex += `  isbn = {${isbn}},\n`;
+            bibtex += `}`;
+        }
+        
+        return {
+            bibtex,
+            title,
+            authors,
+            year,
+            abstract: description,
+            isbn,
+            publisher,
+            categories,
+            doi: '',
+            url_GoogleBooks: volumeInfo.previewLink || volumeInfo.infoLink || '',
+            source: 'Google Books',
+            matchScore: bestScore
+        };
+    } catch (error) {
+        log(`Error parsing Google Books data: ${error.message}`, 'warning');
+        return null;
+    }
+}
+
+function parseOpenLibraryData(data, queryTitle, queryAuthor) {
+    try {
+        // Support both ISBN API response object and search doc
+        let title = '', authors = [], year = '', publisher = '', isbn = '', url = '';
+
+        // If this is a search doc (common path)
+        if (data && (data.key || data.title || data.author_name)) {
+            title = data.title || queryTitle;
+            if (Array.isArray(data.author_name)) authors = data.author_name.slice();
+            if (Array.isArray(data.publisher)) publisher = data.publisher[0];
+            if (Array.isArray(data.isbn)) isbn = data.isbn.find(x => /^97\d{10}$/.test(x)) || data.isbn[0] || '';
+            year = String(data.first_publish_year || (Array.isArray(data.publish_year) ? data.publish_year[0] : '')) || '';
+            url = data.key ? `https://openlibrary.org${data.key}` : '';
+        }
+        // If this is an ISBN API response object
+        if (!title && data && (data.title || data.authors || data.publish_date)) {
+            title = data.title || queryTitle;
+            if (Array.isArray(data.authors)) authors = data.authors.map(a => a.name).filter(Boolean);
+            if (Array.isArray(data.publishers)) publisher = data.publishers[0]?.name || '';
+            if (data.identifiers && Array.isArray(data.identifiers.isbn_13)) isbn = data.identifiers.isbn_13[0];
+            if (!isbn && data.identifiers && Array.isArray(data.identifiers.isbn_10)) isbn = data.identifiers.isbn_10[0];
+            const y = (data.publish_date || '').match(/\d{4}/);
+            year = y ? y[0] : '';
+            url = data.url || '';
+        }
+
+        // Construct BibTeX if we have at least one author
+        let bibtex = '';
+        if (authors.length > 0) {
+            const firstAuthorLast = authors[0].split(/\s+/).pop();
+            const citeKey = `${firstAuthorLast}${year}`;
+            const authorStr = authors.join(' and ');
+            bibtex = `@book{${citeKey},\n` +
+                     `  author = {${authorStr}},\n` +
+                     `  title = {${title}},\n` +
+                     `  year = {${year}},\n` +
+                     (publisher ? `  publisher = {${publisher}},\n` : '') +
+                     (isbn ? `  isbn = {${isbn}},\n` : '') +
+                     `}`;
+        }
+
+        return {
+            bibtex,
+            title: title || queryTitle,
+            authors,
+            year,
+            abstract: '',
+            isbn,
+            publisher,
+            categories: [],
+            doi: '',
+            url_OpenLibrary: url,
+            source: 'Open Library'
+        };
+    } catch (error) {
+        log(`Error parsing Open Library data: ${error.message}`, 'warning');
+        return null;
+    }
+}
+
+function parseCrossrefData(data, queryTitle, queryAuthor) {
+    try {
+        const title = (data.title && data.title[0]) || queryTitle;
+        const authors = (data.author || []).map(a => `${a.given || ''} ${a.family || ''}`.trim());
+        const year = data['published-print']?.['date-parts']?.[0]?.[0] || 
+                     data['published-online']?.['date-parts']?.[0]?.[0] || '';
+        const publisher = data.publisher || '';
+        const doi = data.DOI || '';
+        
+        let bibtex = '';
+        if (authors.length > 0) {
+            const firstAuthorLast = authors[0].split(/\s+/).pop();
+            const citeKey = `${firstAuthorLast}${year}`;
+            const authorStr = authors.join(' and ');
+            
+            bibtex = `@book{${citeKey},\n`;
+            bibtex += `  author = {${authorStr}},\n`;
+            bibtex += `  title = {${title}},\n`;
+            bibtex += `  year = {${year}},\n`;
+            if (publisher) bibtex += `  publisher = {${publisher}},\n`;
+            if (doi) bibtex += `  doi = {${doi}},\n`;
+            bibtex += `}`;
+        }
+        
+        return {
+            bibtex,
+            title,
+            authors,
+            year,
+            abstract: '',
+            isbn: '',
+            publisher,
+            categories: [],
+            doi,
+            url_DOI: doi ? `https://doi.org/${doi}` : '',
+            source: 'Crossref'
+        };
+    } catch (error) {
+        log(`Error parsing Crossref data: ${error.message}`, 'warning');
+        return null;
+    }
+}
+
+async function searchBibtexOnline(title, author = '', year = '', isbn = '', doi = '') {
+    log(`Searching for BibTeX metadata...`, 'info');
+    log(`Title: ${title}${author ? ', Author: ' + author : ''}`, 'info');
+    
+    currentController = new AbortController();
+    
+    // Prioritize ISBN if available
+    if (isbn) {
+        log('Trying Google Books (ISBN)...', 'info');
+        const gbData = await searchGoogleBooks(title, author, isbn);
+        if (gbData) {
+            const result = parseGoogleBooksData(gbData, title, author);
+            if (result) {
+                log(`✓ Found on Google Books (match score: ${(result.matchScore * 100).toFixed(0)}%)`, 'success');
+                return result;
+            }
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, ARGS.BIBTEX_API_DELAY));
+        
+        log('Trying Open Library (ISBN)...', 'info');
+        const olData = await searchOpenLibrary(title, author, isbn);
+        if (olData) {
+            const result = parseOpenLibraryData(olData, title, author);
+            if (result) {
+                log('✓ Found on Open Library', 'success');
+                return result;
+            }
+        }
+    }
+    
+    // Try Google Books with title/author
+    log('Trying Google Books (title/author)...', 'info');
+    const gbData = await searchGoogleBooks(title, author);
+    if (gbData) {
+        const result = parseGoogleBooksData(gbData, title, author);
+        if (result) {
+            log(`✓ Found on Google Books (match score: ${(result.matchScore * 100).toFixed(0)}%)`, 'success');
+            return result;
+        }
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, ARGS.BIBTEX_API_DELAY));
+    
+    // Try Open Library
+    log('Trying Open Library...', 'info');
+    const olData = await searchOpenLibrary(title, author);
+    if (olData) {
+        const result = parseOpenLibraryData(olData, title, author);
+        if (result) {
+            log('✓ Found on Open Library', 'success');
+            return result;
+        }
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, ARGS.BIBTEX_API_DELAY));
+    
+    // Try Crossref
+    log('Trying Crossref...', 'info');
+    const crData = await searchCrossref(title, author, isbn);
+    if (crData) {
+        const result = parseCrossrefData(crData, title, author);
+        if (result) {
+            log('✓ Found on Crossref', 'success');
+            return result;
+        }
+    }
+    
+    log('✗ No BibTeX metadata found', 'warning');
+    return null;
+}
+
+function yamlQuote(value) {
+    if (value === undefined || value === null) return '""';
+    const str = String(value).replace(/"/g, '\\"');
+    return `"${str}"`;
+}
+
+function createYAMLFrontmatter(title, author, year, bibtexData) {
+    const yaml = [];
+    yaml.push('---');
+    yaml.push(`title: ${yamlQuote(bibtexData?.title || title)}`);
+
+    if (bibtexData?.abstract) {
+        const abstract = bibtexData.abstract.replace(/\n/g, ' ').trim();
+        yaml.push(`abstract: ${yamlQuote(abstract)}`);
+    }
+
+    yaml.push('aliases:');
+    yaml.push(`  - ${yamlQuote(bibtexData?.title || title)}`);
+    if (bibtexData?.authors && bibtexData.authors.length > 0 && bibtexData.year) {
+        const firstAuthorLast = bibtexData.authors[0].split(/\s+/).pop();
+        yaml.push(`  - ${yamlQuote(`${firstAuthorLast}, ${bibtexData.year}`)}`);
+    }
+
+    if (bibtexData?.year || year) {
+        yaml.push(`year_publication: ${yamlQuote(`[[y-${bibtexData?.year || year}]]`)}`);
+    }
+
+    yaml.push('topics:');
+    yaml.push('  - "[[FIELD - History]]"');
+
+    yaml.push('authors:');
+    if (bibtexData?.authors && bibtexData.authors.length > 0) {
+        bibtexData.authors.forEach(auth => {
+            yaml.push(`  - ${yamlQuote(`[[${auth}]]`)}`);
+        });
+    } else if (author) {
+        yaml.push(`  - ${yamlQuote(`[[${author}]]`)}`);
+    }
+
+    if (bibtexData?.isbn) {
+        yaml.push(`isbn: ${yamlQuote(bibtexData.isbn)}`);
+    }
+    if (bibtexData?.doi) {
+        yaml.push(`url_DOI: ${yamlQuote(`https://doi.org/${bibtexData.doi}`)}`);
+    }
+    if (bibtexData?.url_GoogleBooks) {
+        yaml.push(`url_GoogleBooks: ${yamlQuote(bibtexData.url_GoogleBooks)}`);
+    }
+    if (bibtexData?.url_OpenLibrary) {
+        yaml.push(`url_OpenLibrary: ${yamlQuote(bibtexData.url_OpenLibrary)}`);
+    }
+
+    if (bibtexData?.bibtex) {
+        const bibtexEscaped = bibtexData.bibtex.replace(/\"/g, '\\"').replace(/\n/g, ' ');
+        yaml.push(`bibtex: \"${bibtexEscaped}\"`);
+    }
+
+    yaml.push('types:');
+    yaml.push('  - "[[TYPE - Book]]"');
+    yaml.push('  - "[[TYPE - Publication]]"');
+
+    if (bibtexData?.publisher) {
+        yaml.push(`publisher: ${yamlQuote(`[[${bibtexData.publisher}]]`)}`);
+    }
+
+    yaml.push('---');
+    yaml.push('');
+    return yaml.join('\n');
+}
+
+// EPUB Processing Functions
+async function extractEpubContent(file) {
+    log(`Extracting content from ${file.name}...`, 'info');
+    
+    try {
+        const zip = await JSZip.loadAsync(file);
+        const metadata = { title: file.name.replace(/\.(epub|kepub)$/i, ''), author: '', publisher: '' };
+        const images = [];
+        const chapters = [];
+        
+        // Find content.opf for metadata
+        const opfFile = Object.keys(zip.files).find(name => name.endsWith('.opf'));
+        if (opfFile) {
+            const opfContent = await zip.files[opfFile].async('text');
+            const parser = new DOMParser();
+            const opfDoc = parser.parseFromString(opfContent, 'text/xml');
+            
+            const titleEl = opfDoc.querySelector('title, dc\\:title');
+            const authorEl = opfDoc.querySelector('creator, dc\\:creator');
+            const publisherEl = opfDoc.querySelector('publisher, dc\\:publisher');
+            
+            if (titleEl) metadata.title = titleEl.textContent.trim();
+            if (authorEl) metadata.author = authorEl.textContent.trim();
+            if (publisherEl) metadata.publisher = publisherEl.textContent.trim();
+        }
+        
+        // Extract images
+        for (const [path, file] of Object.entries(zip.files)) {
+            if (!file.dir) {
+                const ext = '.' + path.split('.').pop().toLowerCase();
+                if (ARGS.IMAGE_EXTENSIONS.includes(ext)) {
+                    const blob = await file.async('blob');
+                    images.push({
+                        path,
+                        name: path.split('/').pop(),
+                        blob,
+                        ext
+                    });
+                }
+            }
+        }
+        
+        // Extract HTML/XHTML content
+        const htmlFiles = Object.keys(zip.files)
+            .filter(name => /\.(html|xhtml|htm)$/i.test(name))
+            .sort();
+        
+        for (const htmlFile of htmlFiles) {
+            const content = await zip.files[htmlFile].async('text');
+            const markdown = htmlToMarkdown(content);
+            if (markdown.trim()) {
+                chapters.push(markdown);
+            }
+        }
+        
+        const fullMarkdown = chapters.join('\n\n---\n\n');
+        
+        log(`Extracted ${images.length} images and ${chapters.length} chapters`, 'success');
+        
+        return { metadata, images, markdown: fullMarkdown };
+    } catch (error) {
+        log(`Error extracting EPUB: ${error.message}`, 'error');
+        throw error;
+    }
+}
+
+function htmlToMarkdown(html) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    // Remove script, style, meta elements
+    doc.querySelectorAll('script, style, meta, link').forEach(el => el.remove());
+    
+    function processElement(element) {
+        if (!element) return '';
+        
+        if (element.nodeType === Node.TEXT_NODE) {
+            return element.textContent.trim();
+        }
+        
+        if (element.nodeType !== Node.ELEMENT_NODE) return '';
+        
+        const tag = element.tagName.toLowerCase();
+        let result = '';
+        
+        // Process children
+        const children = Array.from(element.childNodes);
+        const childText = children.map(processElement).join('');
+        
+        switch (tag) {
+            case 'h1': return `\n# ${childText}\n\n`;
+            case 'h2': return `\n## ${childText}\n\n`;
+            case 'h3': return `\n### ${childText}\n\n`;
+            case 'h4': return `\n#### ${childText}\n\n`;
+            case 'h5': return `\n##### ${childText}\n\n`;
+            case 'h6': return `\n###### ${childText}\n\n`;
+            case 'p': return childText ? `${childText}\n\n` : '';
+            case 'br': return '  \n';
+            case 'hr': return '\n---\n\n';
+            case 'strong':
+            case 'b': return `**${childText}**`;
+            case 'em':
+            case 'i': return `*${childText}*`;
+            case 'code': return `\`${childText}\``;
+            case 'pre': return `\n\`\`\`\n${element.textContent}\n\`\`\`\n\n`;
+            case 'blockquote':
+                return '\n' + element.textContent.split('\n').map(line => `> ${line}`).join('\n') + '\n\n';
+            case 'ul':
+                result = '\n';
+                element.querySelectorAll(':scope > li').forEach(li => {
+                    result += `- ${li.textContent.trim()}\n`;
+                });
+                return result + '\n';
+            case 'ol':
+                result = '\n';
+                Array.from(element.querySelectorAll(':scope > li')).forEach((li, i) => {
+                    result += `${i + 1}. ${li.textContent.trim()}\n`;
+                });
+                return result + '\n';
+            case 'a':
+                const href = element.getAttribute('href');
+                return href ? `[${childText}](${href})` : childText;
+            case 'img':
+                const src = element.getAttribute('src');
+                const alt = element.getAttribute('alt') || 'image';
+                return `![${alt}](${src})\n\n`;
+            default:
+                return childText;
+        }
+    }
+    
+    const body = doc.querySelector('body') || doc;
+    let markdown = processElement(body);
+    
+    // Clean up excessive newlines
+    markdown = markdown.replace(/\n{3,}/g, '\n\n');
+    
+    return markdown.trim();
+}
+
+// File System Access API handling
+async function requestOutputDirectory() {
+    try {
+        // Check if File System Access API is available
+        if (!window.showDirectoryPicker) {
+            return null;
+        }
+        
+        log('Requesting directory access...', 'info');
+        
+        // Request directory handle - MUST be called directly from user gesture
+        const dirHandle = await window.showDirectoryPicker({
+            mode: 'readwrite',
+            startIn: 'documents'
+        });
+        
+        log(`Selected directory: ${dirHandle.name}`, 'success');
+        return dirHandle;
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            log('Directory selection cancelled', 'warning');
+        } else {
+            log(`Error requesting directory: ${error.message}`, 'warning');
+        }
+        return null;
+    }
+}
+
+async function saveFilesWithFSA(files, folderName, dirHandle) {
+    try {
+        if (!dirHandle) {
+            throw new Error('No directory handle available');
+        }
+        
+        // Create run folder
+        const runFolderHandle = await dirHandle.getDirectoryHandle(folderName, { create: true });
+        log(`Created folder: ${folderName}`, 'success');
+        
+        // Save all files
+        for (const fileData of files) {
+            let targetHandle = runFolderHandle;
+            
+            // Create subfolder if needed
+            if (fileData.subfolder) {
+                targetHandle = await runFolderHandle.getDirectoryHandle(fileData.subfolder, { create: true });
+            }
+            
+            const fileHandle = await targetHandle.getFileHandle(fileData.name, { create: true });
+            const writable = await fileHandle.createWritable();
+            
+            if (fileData.blob) {
+                await writable.write(fileData.blob);
+            } else if (fileData.content) {
+                await writable.write(new Blob([fileData.content], { type: 'text/plain' }));
+            }
+            
+            await writable.close();
+            log(`Saved: ${fileData.name}`, 'success');
+        }
+        
+        return true;
+    } catch (error) {
+        log(`Error saving files: ${error.message}`, 'error');
+        return false;
+    }
+}
+
+async function saveFilesWithDownload(files, folderName) {
+    log('Using download fallback (File System Access API not available)', 'info');
+    log(`Please create a folder named: ${folderName}`, 'warning');
+    log('Save each file into this folder when prompted', 'warning');
+    
+    for (const fileData of files) {
+        const fileName = fileData.subfolder ? `${fileData.subfolder}/${fileData.name}` : fileData.name;
+        
+        let blob;
+        if (fileData.blob) {
+            blob = fileData.blob;
+        } else if (fileData.content) {
+            blob = new Blob([fileData.content], { type: 'text/plain' });
+        }
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileData.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        log(`Download initiated: ${fileName}`, 'info');
+        
+        // Wait a bit between downloads to avoid browser blocking
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    log('All files queued for download', 'success');
+}
+
+// Process Full Conversion
+async function processFullConversion() {
+    if (isProcessing || selectedFiles.length === 0) return;
+    
+    isProcessing = true;
+    showProgress();
+    document.getElementById('cancel-full-btn').style.display = 'inline-block';
+    processFullBtn.disabled = true;
+    
+    const enableBibtex = document.getElementById('enable-bibtex-full').checked;
+    const results = [];
+    
+    // Request output directory BEFORE processing (while in user gesture context)
+    const outputDirHandle = await requestOutputDirectory();
+    const useFSA = outputDirHandle !== null;
+    
+    if (!useFSA && window.showDirectoryPicker) {
+        // User cancelled directory selection, ask if they want to use download fallback
+        const useDownloads = confirm(
+            'Directory selection was cancelled or unavailable.\n\n' +
+            'Would you like to use the download fallback instead?\n' +
+            '(You will need to manually save each file)\n\n' +
+            'Click OK to continue with downloads, or Cancel to abort.'
+        );
+        
+        if (!useDownloads) {
+            log('Processing cancelled by user', 'warning');
+            isProcessing = false;
+            document.getElementById('cancel-full-btn').style.display = 'none';
+            processFullBtn.disabled = false;
+            hideProgress();
+            return;
+        }
+        log('Using download fallback for saving files', 'info');
+    }
+    
+    try {
+        for (let i = 0; i < selectedFiles.length; i++) {
+            const file = selectedFiles[i];
+            const progressBase = (i / selectedFiles.length) * 100;
+            
+            updateProgress(progressBase, `Processing ${file.name} (${i + 1}/${selectedFiles.length})...`);
+            log(`\n${'='.repeat(60)}`, 'info');
+            log(`Processing: ${file.name}`, 'info');
+            log(`${'='.repeat(60)}`, 'info');
+            
+            // Extract EPUB content
+            updateProgress(progressBase + 10, 'Extracting EPUB content...');
+            const { metadata, images, markdown } = await extractEpubContent(file);
+            
+            // Search BibTeX if enabled
+            let bibtexData = null;
+            if (enableBibtex) {
+                updateProgress(progressBase + 30, 'Searching for BibTeX metadata...');
+                bibtexData = await searchBibtexOnline(
+                    metadata.title,
+                    metadata.author
+                );
+            }
+            
+            // Generate TN Library filename
+            const year = bibtexData?.year || '';
+            const tnFilename = generateTNLibraryFilename(metadata.title, year);
+            log(`TN Library ID: ${tnFilename}`, 'info');
+            
+            // Create YAML frontmatter
+            updateProgress(progressBase + 50, 'Creating Obsidian markdown...');
+            const frontmatter = createYAMLFrontmatter(
+                metadata.title,
+                metadata.author,
+                year,
+                bibtexData
+            );
+            
+            const fullContent = `${frontmatter}\n# ${metadata.title}\n\n${markdown}`;
+            
+            // Prepare files for saving
+            const timestamp = getTimestamp();
+            const inputName = file.name.replace(/\.(epub|kepub)$/i, '');
+            const folderName = `[${timestamp}] - ${ARGS.OUTPUT_DESCRIPTION} - (${sanitizeFilename(inputName)})`;
+            
+            const filesToSave = [];
+            
+            // Add markdown file
+            filesToSave.push({
+                name: `${tnFilename}.md`,
+                content: fullContent
+            });
+            
+            // Add images
+            for (let j = 0; j < images.length; j++) {
+                const img = images[j];
+                const imgName = `${tnFilename}-Fig_${String(j + 1).padStart(4, '0')}${img.ext}`;
+                filesToSave.push({
+                    name: imgName,
+                    subfolder: ARGS.FIGURES_FOLDER_NAME,
+                    blob: img.blob
+                });
+            }
+            
+            // Add summary JSON
+            const summary = {
+                timestamp,
+                app_name: '251106_Book_To_Obsidian_MD_Converter.html',
+                input_file: file.name,
+                output_description: ARGS.OUTPUT_DESCRIPTION,
+                metadata: {
+                    title: metadata.title,
+                    author: metadata.author,
+                    publisher: metadata.publisher
+                },
+                bibtex_search_enabled: enableBibtex,
+                bibtex_found: bibtexData !== null,
+                bibtex_source: bibtexData?.source || null,
+                statistics: {
+                    num_images: images.length,
+                    num_words: markdown.split(/\s+/).length,
+                    markdown_size_kb: (fullContent.length / 1024).toFixed(2)
+                },
+                tn_library_id: tnFilename
+            };
+
+            if (bibtexData) {
+                summary.bibtex_metadata = {
+                    title: bibtexData.title || '',
+                    authors: bibtexData.authors || [],
+                    year: bibtexData.year || '',
+                    isbn: bibtexData.isbn || '',
+                    doi: bibtexData.doi || '',
+                    publisher: bibtexData.publisher || '',
+                    source: bibtexData.source || '',
+                    url_GoogleBooks: bibtexData.url_GoogleBooks || '',
+                    url_OpenLibrary: bibtexData.url_OpenLibrary || '',
+                    bibtex: bibtexData.bibtex || ''
+                };
+            }
+            
+            filesToSave.push({
+                name: `[${timestamp}] - summary.json`,
+                content: JSON.stringify(summary, null, 2)
+            });
+            
+            // Save files
+            updateProgress(progressBase + 70, 'Saving files...');
+            
+            if (useFSA) {
+                const fsaSuccess = await saveFilesWithFSA(filesToSave, folderName, outputDirHandle);
+                if (!fsaSuccess) {
+                    log('FSA save failed, falling back to downloads', 'warning');
+                    await saveFilesWithDownload(filesToSave, folderName);
+                }
+            } else {
+                await saveFilesWithDownload(filesToSave, folderName);
+            }
+            
+            updateProgress(progressBase + 100 / selectedFiles.length, `Completed ${file.name}`);
+            results.push(`✓ ${file.name} → ${tnFilename}.md (${images.length} images)`);
+        }
+        
+        updateProgress(100, 'All files processed successfully!');
+        log('\nAll conversions completed!', 'success');
+        showResults(results);
+        
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            log(`Error: ${error.message}`, 'error');
+        }
+    } finally {
+        isProcessing = false;
+        document.getElementById('cancel-full-btn').style.display = 'none';
+        processFullBtn.disabled = false;
+        currentController = null;
+    }
+}
+
+// Process Metadata Only
+async function processMetadataOnly() {
+    if (isProcessing) return;
+    
+    // Collect metadata entries
+    const entries = [];
+    
+    // Check which input is active
+    const manualActive = document.getElementById('manual-input').classList.contains('active');
+    const jsonActive = document.getElementById('json-input').classList.contains('active');
+    const bibtexActive = document.getElementById('bibtex-input').classList.contains('active');
+
+    if (manualActive) {
+        const title = document.getElementById('meta-title').value.trim();
+        if (!title) {
+            log('Error: Book title is required', 'error');
+            return;
+        }
+        
+        entries.push({
+            title,
+            author: document.getElementById('meta-author').value.trim(),
+            year: document.getElementById('meta-year').value.trim(),
+            isbn: document.getElementById('meta-isbn').value.trim(),
+            doi: document.getElementById('meta-doi').value.trim()
+        });
+    } else if (jsonActive) {
+        // JSON input
+        const jsonText = document.getElementById('json-paste').value.trim();
+        if (!jsonText) {
+            log('Error: Please provide JSON input', 'error');
+            return;
+        }
+        
+        try {
+            const jsonData = JSON.parse(jsonText);
+            const array = Array.isArray(jsonData) ? jsonData : [jsonData];
+            
+            for (const item of array) {
+                if (!item.title) {
+                    log('Warning: Skipping entry without title', 'warning');
+                    continue;
+                }
+                entries.push({
+                    title: item.title,
+                    author: item.author || '',
+                    year: item.year || '',
+                    isbn: item.isbn || '',
+                    doi: item.doi || ''
+                });
+            }
+        } catch (error) {
+            log(`Error parsing JSON: ${error.message}`, 'error');
+            return;
+        }
+    } else if (bibtexActive) {
+        // BibTeX input (no API calls)
+        const bibText = document.getElementById('bibtex-paste').value.trim();
+        if (!bibText) {
+            log('Error: Please provide BibTeX input', 'error');
+            return;
+        }
+        try {
+            const parsed = parseBibtexEntries(bibText);
+            if (parsed.length === 0) {
+                log('No valid BibTeX entries found', 'warning');
+                return;
+            }
+            parsed.forEach(p => entries.push(p));
+        } catch (e) {
+            log(`Error parsing BibTeX: ${e.message}`, 'error');
+            return;
+        }
+    }
+    
+    if (entries.length === 0) {
+        log('Error: No valid entries to process', 'error');
+        return;
+    }
+    
+    isProcessing = true;
+    showProgress();
+    document.getElementById('cancel-meta-btn').style.display = 'inline-block';
+    document.getElementById('process-meta-btn').disabled = true;
+    
+    const results = [];
+    
+    // Request output directory BEFORE processing (while in user gesture context)
+    const outputDirHandle = await requestOutputDirectory();
+    const useFSA = outputDirHandle !== null;
+    
+    if (!useFSA && window.showDirectoryPicker) {
+        // User cancelled directory selection, ask if they want to use download fallback
+        const useDownloads = confirm(
+            'Directory selection was cancelled or unavailable.\n\n' +
+            'Would you like to use the download fallback instead?\n' +
+            '(You will need to manually save each file)\n\n' +
+            'Click OK to continue with downloads, or Cancel to abort.'
+        );
+        
+        if (!useDownloads) {
+            log('Processing cancelled by user', 'warning');
+            isProcessing = false;
+            document.getElementById('cancel-meta-btn').style.display = 'none';
+            document.getElementById('process-meta-btn').disabled = false;
+            hideProgress();
+            return;
+        }
+        log('Using download fallback for saving files', 'info');
+    }
+    
+    try {
+        const timestamp = getTimestamp();
+        const folderName = `[${timestamp}] - ${ARGS.OUTPUT_DESCRIPTION} - (Metadata)`;
+        const filesToSave = [];
+        
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+            const progressBase = (i / entries.length) * 100;
+            
+            updateProgress(progressBase, `Processing ${entry.title} (${i + 1}/${entries.length})...`);
+            log(`\nProcessing: ${entry.title}`, 'info');
+            
+            // Determine bibtexData
+            let bibtexData = null;
+            if (bibtexActive && entry._bibtexData) {
+                // Use parsed BibTeX only, no API calls
+                bibtexData = entry._bibtexData;
+            } else {
+                updateProgress(progressBase + 30, 'Searching for BibTeX metadata...');
+                bibtexData = await searchBibtexOnline(
+                    entry.title,
+                    entry.author,
+                    entry.year,
+                    entry.isbn,
+                    entry.doi
+                );
+            }
+            
+            // Generate TN Library filename
+            const year = bibtexData?.year || entry.year || '';
+            const tnFilename = generateTNLibraryFilename(entry.title, year);
+            log(`TN Library ID: ${tnFilename}`, 'info');
+            
+            // Create YAML frontmatter
+            updateProgress(progressBase + 60, 'Creating markdown file...');
+            const frontmatter = createYAMLFrontmatter(
+                entry.title,
+                entry.author,
+                entry.year,
+                bibtexData
+            );
+            
+            const fullContent = `${frontmatter}\n# ${entry.title}\n\n${ARGS.NO_CONTENT_NOTE}\n`;
+            
+            // Add to files to save
+            filesToSave.push({
+                name: `${tnFilename}.md`,
+                content: fullContent
+            });
+            
+            updateProgress(progressBase + 100 / entries.length, `Completed ${entry.title}`);
+            results.push(`✓ ${entry.title} → ${tnFilename}.md`);
+        }
+        
+        // Add summary JSON
+        const summary = {
+            timestamp,
+            app_name: '251106_Book_To_Obsidian_MD_Converter.html',
+            processing_mode: 'metadata_only',
+            output_description: ARGS.OUTPUT_DESCRIPTION,
+            entries_processed: entries.length,
+            entries: entries.map((e, i) => ({
+                title: e.title,
+                author: e.author,
+                tn_library_id: generateTNLibraryFilename(e.title, e.year)
+            }))
+        };
+        
+        filesToSave.push({
+            name: `[${timestamp}] - summary.json`,
+            content: JSON.stringify(summary, null, 2)
+        });
+        
+        // Save files
+        updateProgress(90, 'Saving files...');
+        
+        if (useFSA) {
+            const fsaSuccess = await saveFilesWithFSA(filesToSave, folderName, outputDirHandle);
+            if (!fsaSuccess) {
+                log('FSA save failed, falling back to downloads', 'warning');
+                await saveFilesWithDownload(filesToSave, folderName);
+            }
+        } else {
+            await saveFilesWithDownload(filesToSave, folderName);
+        }
+        
+        updateProgress(100, 'All metadata files created successfully!');
+        log('\nAll metadata files created!', 'success');
+        showResults(results);
+        
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            log(`Error: ${error.message}`, 'error');
+        }
+    } finally {
+        isProcessing = false;
+        document.getElementById('cancel-meta-btn').style.display = 'none';
+        document.getElementById('process-meta-btn').disabled = false;
+        currentController = null;
+    }
+}
+    </script>
+</body>
+</html>
+
